@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy node_modules from builder
-COPY --from=builder /app/node_modules ./node_modules
+# Copy --from=builder /app/node_modules ./node_modules
 
 # Copy application files
 COPY backend ./backend
@@ -42,15 +42,6 @@ COPY package*.json ./
 
 # Create data directory for SQLite
 RUN mkdir -p /app/data
-
-# Create non-root user for security
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Change ownership
-RUN chown -R nodejs:nodejs /app
-
-USER nodejs
 
 # Expose port
 EXPOSE 3000
