@@ -32,7 +32,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends dumb-init \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy node_modules from builder
-# Copy --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 
 # Copy application files
 COPY backend ./backend
