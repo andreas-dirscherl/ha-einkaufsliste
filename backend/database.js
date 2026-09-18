@@ -27,11 +27,15 @@ export function initializeDatabase() {
     try {
       const dir = path.dirname(candidate);
       console.log(`[ATTEMPT] Trying database path: ${candidate}`);
-      
-      // Ensure directory exists
       fs.mkdirSync(dir, { recursive: true });
       
-      // Try to open the database
+      // Check if candidate exists as a directory (shouldn't happen but cleanup if it does)
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+        console.warn(`[CLEANUP] ${candidate} exists as directory, renaming to ${candidate}.bak`);
+        fs.renameSync(candidate, `${candidate}.bak`);
+      }
+      
+      // Try to open the database - this will CREATE the file if it doesn't exist
       db = new Database(candidate);
       DB_PATH = candidate;
       console.log(`[OK] Database opened successfully at: ${DB_PATH}`);
