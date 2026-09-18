@@ -6,20 +6,35 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Use /app/data/app.db on persistent volume for production
-// Falls local development: fallback to ./app.db im Projekt-Root
-let DB_PATH = process.env.DB_PATH || '/app/data/app.db';
+// Determine database path with fallback logic
+function determineDatabasePath() {
+  let candidates = [
+    process.env.DB_PATH || '/app/data/app.db',
+    '/tmp/app.db',
+    '/app/app.db'
+  ];
 
-// Fallback to /app/app.db if /app/data is not writable (for development/testing)
-try {
-  // Try to ensure directory exists
-  if (typeof fs !== 'undefined' && fs.mkdirSync) {
-    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+  for (const candidate of candidates) {
+    try {
+      const dir = path.dirname(candidate);
+      fs.mkdirSync(dir, { recursive: true });
+      
+      // Test write access
+      const testFile = path.join(dir, '.write-test');
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
+      
+      console.log(`[OK] Database will use: ${candidate}`);
+      return candidate;
+    } catch (err) {
+      console.warn(`[WARN] Cannot write to ${candidate}: ${err.message}`);
+    }
   }
-} catch (err) {
-  console.warn(`[WARN] Cannot create directory for ${DB_PATH}, falling back to /app/app.db`);
-  DB_PATH = '/app/app.db';
+  
+  throw new Error('No writable path found for database!');
 }
+
+const DB_PATH = determineDatabasePath();
 
 console.log(`📁 Database path: ${DB_PATH}`);
 
