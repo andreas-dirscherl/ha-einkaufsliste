@@ -964,8 +964,8 @@ app.get('/api/health', (req, res) => {
  */
 const wss = initWebSocketServer(server);
 
-server.listen(PORT, () => {
-  console.log(`🛒 Shopping List Server running on http://localhost:${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🛒 Shopping List Server running on http://0.0.0.0:${PORT}`);
   console.log(`📱 Open http://localhost:${PORT}/setup.html to initialize`);
   console.log(`🔗 WebSocket ready for real-time sync`);
   
