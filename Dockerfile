@@ -17,9 +17,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies with build tools available
-# Add --verbose for debugging
-RUN npm ci --only=production 2>&1
+# Install dependencies (npm install works without package-lock.json in Docker)
+# Using --omit=dev to exclude dev dependencies
+RUN npm install --omit=dev
 
 # Stage 2: Runtime stage
 # Use Alpine for smaller runtime image
