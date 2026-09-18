@@ -82,16 +82,35 @@ export async function syncHALists() {
         const description = attributes?.description || null;
 
         // Insert or update list
-        db.prepare(`
+        const insertStmt = db.prepare(`
           INSERT INTO lists (ha_entity_id, name, description)
           VALUES (?, ?, ?)
           ON CONFLICT(ha_entity_id) DO UPDATE SET
             name = excluded.name,
             description = excluded.description,
             updated_at = CURRENT_TIMESTAMP
-        `).run(entity_id, name, description);
+          RETURNING id
+        `);
+        
+        const result = insertStmt.get(entity_id, name, description);
+        const listId = result.id;
 
-        console.log(`[syncHALists] Synced HA list: ${name} (${entity_id})`);
+        console.log(`[syncHALists] Synced HA list: ${name} (${entity_id}) with list_id: ${listId}`);
+
+        // Grant permissions to all admin users
+        const admins = db.prepare('SELECT id FROM users WHERE is_admin = 1').all();
+        for (const admin of admins) {
+          try {
+            db.prepare(`
+              INSERT INTO list_permissions (list_id, user_id, can_read, can_edit, can_delete)
+              VALUES (?, ?, 1, 1, 1)
+              ON CONFLICT(list_id, user_id) DO NOTHING
+            `).run(listId, admin.id);
+            console.log(`[syncHALists] Granted permissions for list ${listId} to user ${admin.id}`);
+          } catch (permError) {
+            console.warn(`[syncHALists] Failed to grant permission: ${permError.message}`);
+          }
+        }
 
         // Sync items from this list
         try {

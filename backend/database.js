@@ -6,8 +6,9 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Use /app/app.db as default (in container filesystem, not on mounted volume)
-const DB_PATH = '/app/app.db';
+// Use /app/data/app.db on persistent volume for production
+// Falls local development: fallback to ./app.db im Projekt-Root
+const DB_PATH = process.env.DB_PATH || '/app/data/app.db';
 
 console.log(`📁 Database path: ${DB_PATH}`);
 
