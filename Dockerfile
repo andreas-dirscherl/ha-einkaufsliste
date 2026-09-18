@@ -1,23 +1,28 @@
 # Multi-stage Dockerfile for optimal image size
 
 # Stage 1: Build stage (dependencies)
-FROM node:20-alpine AS builder
+# Use Debian-based image for better build tool support
+FROM node:20-bookworm AS builder
 
 WORKDIR /app
 
 # Install build dependencies for better-sqlite3
-RUN apk add --no-cache --virtual .build-deps python3 make g++
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 \
+    make \
+    g++ \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
 # Copy package files
 COPY package*.json ./
 
 # Install dependencies with build tools available
-RUN npm ci --only=production
-
-# Remove build dependencies to reduce layer size
-RUN apk del .build-deps
+# Add --verbose for debugging
+RUN npm ci --only=production 2>&1
 
 # Stage 2: Runtime stage
+# Use Alpine for smaller runtime image
 FROM node:20-alpine
 
 WORKDIR /app
