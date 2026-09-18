@@ -47,8 +47,18 @@ export function initializeDatabase() {
     throw err;
   }
 
-  db.pragma('journal_mode = WAL');
+  // Use TRUNCATE journal mode instead of WAL for better compatibility with network/cache drives
+  // WAL mode has issues on Unraid cache drives with fcntl locking
+  try {
+    db.pragma('journal_mode = TRUNCATE');
+    console.log(`✅ Journal mode set to TRUNCATE`);
+  } catch (err) {
+    console.warn(`⚠️ Failed to set journal mode: ${err.message}`);
+  }
+  
   db.pragma('foreign_keys = ON');
+  db.pragma('synchronous = NORMAL');
+  console.log(`✅ Database pragmas configured`);
 
   // Create tables if they don't exist
   createTables();
