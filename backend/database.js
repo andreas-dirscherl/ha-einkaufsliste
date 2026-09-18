@@ -6,50 +6,41 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Determine database path with fallback logic
-function determineDatabasePath() {
-  let candidates = [
-    process.env.DB_PATH || '/app/data/app.db',
-    '/tmp/app.db',
-    '/app/app.db'
-  ];
-
-  for (const candidate of candidates) {
-    try {
-      const dir = path.dirname(candidate);
-      fs.mkdirSync(dir, { recursive: true });
-      
-      // Test write access
-      const testFile = path.join(dir, '.write-test');
-      fs.writeFileSync(testFile, 'test');
-      fs.unlinkSync(testFile);
-      
-      console.log(`[OK] Database will use: ${candidate}`);
-      return candidate;
-    } catch (err) {
-      console.warn(`[WARN] Cannot write to ${candidate}: ${err.message}`);
-    }
-  }
-  
-  throw new Error('No writable path found for database!');
-}
-
-const DB_PATH = determineDatabasePath();
-
-console.log(`📁 Database path: ${DB_PATH}`);
+// Candidate database paths in order of preference
+const DB_CANDIDATES = [
+  process.env.DB_PATH || '/app/data/app.db',
+  '/tmp/app.db',
+  '/app/app.db'
+];
 
 let db = null;
+let DB_PATH = null;
 
 /**
  * Initialize SQLite database with all required tables
  */
 export function initializeDatabase() {
-  try {
-    db = new Database(DB_PATH);
-    console.log(`[OK] Database opened successfully`);
-  } catch (err) {
-    console.error(`[ERROR] Failed to open database at ${DB_PATH}: ${err.message}`);
-    throw err;
+  // Try each path until one works
+  for (const candidate of DB_CANDIDATES) {
+    if (DB_PATH) break; // Already found a working path
+    
+    try {
+      const dir = path.dirname(candidate);
+      fs.mkdirSync(dir, { recursive: true });
+      
+      // Try to open the database
+      db = new Database(candidate);
+      DB_PATH = candidate;
+      console.log(`[OK] Database opened successfully at: ${DB_PATH}`);
+      break;
+    } catch (err) {
+      console.warn(`[WARN] Failed to open database at ${candidate}: ${err.message}`);
+      db = null;
+    }
+  }
+
+  if (!db || !DB_PATH) {
+    throw new Error(`Failed to open database at any candidate path: ${DB_CANDIDATES.join(', ')}`);
   }
 
   // Use TRUNCATE journal mode for better compatibility
