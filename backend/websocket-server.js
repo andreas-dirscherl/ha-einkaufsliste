@@ -3,7 +3,7 @@
  * Broadcast von Item-Änderungen an alle Clients
  */
 
-import WebSocket from 'ws';
+import { WebSocketServer } from 'ws';
 import jwt from 'jsonwebtoken';
 import { getDatabase } from './database.js';
 
@@ -19,7 +19,7 @@ const userConnections = new Map();
  * Initialize WebSocket Server
  */
 export function initWebSocketServer(server) {
-  const wss = new WebSocket.Server({ server });
+  const wss = new WebSocketServer({ server });
 
   wss.on('connection', (ws) => {
     let userId = null;
