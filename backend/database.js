@@ -5,7 +5,19 @@ import crypto from 'crypto';
 import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'app.db');
+
+// Determine DB_PATH with fallback
+let DB_PATH = process.env.DB_PATH;
+if (!DB_PATH) {
+  DB_PATH = path.join(__dirname, '..', 'data', 'app.db');
+}
+
+// Ensure absolute path
+if (!path.isAbsolute(DB_PATH)) {
+  DB_PATH = path.resolve(DB_PATH);
+}
+
+console.log(`📁 Database path: ${DB_PATH}`);
 
 let db = null;
 
@@ -13,13 +25,28 @@ let db = null;
  * Initialize SQLite database with all required tables
  */
 export function initializeDatabase() {
-  // Ensure data directory exists
+  // Ensure data directory exists with proper permissions
   const dataDir = path.dirname(DB_PATH);
-  if (!fs.existsSync(dataDir)) {
-    fs.mkdirSync(dataDir, { recursive: true });
+  console.log(`📁 Creating directory if not exists: ${dataDir}`);
+  
+  try {
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true, mode: 0o777 });
+      console.log(`✅ Created directory: ${dataDir}`);
+    }
+  } catch (err) {
+    console.error(`❌ Failed to create directory: ${err.message}`);
+    throw err;
   }
 
-  db = new Database(DB_PATH);
+  try {
+    db = new Database(DB_PATH);
+    console.log(`✅ Database opened successfully`);
+  } catch (err) {
+    console.error(`❌ Failed to open database at ${DB_PATH}: ${err.message}`);
+    throw err;
+  }
+
   db.pragma('journal_mode = WAL');
   db.pragma('foreign_keys = ON');
 

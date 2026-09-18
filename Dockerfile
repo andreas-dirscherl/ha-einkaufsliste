@@ -40,8 +40,8 @@ COPY frontend ./frontend
 COPY assets ./assets
 COPY package*.json ./
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
+# Create data directory for SQLite with write permissions
+RUN mkdir -p /app/data && chmod 777 /app/data
 
 # Expose port
 EXPOSE 3000
