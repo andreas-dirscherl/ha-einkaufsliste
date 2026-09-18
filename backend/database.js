@@ -37,7 +37,16 @@ export function initializeDatabase() {
       console.log(`[OK] Database opened successfully at: ${DB_PATH}`);
       break;
     } catch (err) {
-      console.warn(`[WARN] Failed to open database at ${candidate}: ${err.code || err.message}`);
+      const errorMsg = err.code || err.message;
+      console.warn(`[WARN] Failed to open database at ${candidate}: ${errorMsg}`);
+      
+      // Special warning for cache drive issues
+      if (candidate === '/app/data/app.db' && err.code === 'SQLITE_CANTOPEN') {
+        console.warn('[WARN] /app/data volume mount may have filesystem issues.');
+        console.warn('[WARN] This is a known issue with Unraid cache drives and SQLite.');
+        console.warn('[WARN] Data will be stored in /tmp but will NOT persist across container restarts.');
+      }
+      
       db = null;
     }
   }

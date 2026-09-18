@@ -102,8 +102,8 @@ export async function syncHALists() {
         for (const admin of admins) {
           try {
             db.prepare(`
-              INSERT INTO list_permissions (list_id, user_id, can_read, can_edit, can_delete)
-              VALUES (?, ?, 1, 1, 1)
+              INSERT INTO list_permissions (list_id, user_id, can_read, can_write)
+              VALUES (?, ?, 1, 1)
               ON CONFLICT(list_id, user_id) DO NOTHING
             `).run(listId, admin.id);
             console.log(`[syncHALists] Granted permissions for list ${listId} to user ${admin.id}`);
