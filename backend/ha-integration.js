@@ -356,5 +356,4 @@ export default {
   getHAPersons,
   getHAZones,
   getPersonLocation
-  deleteItemFromHA
 };
