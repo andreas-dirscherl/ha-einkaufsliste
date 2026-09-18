@@ -6,44 +6,44 @@
 export const LIST_CATEGORIES = {
   groceries: {
     name: 'Lebensmittel',
-    icon: '🛒',
-    color: '#10b981', // emerald
-    emoji: '🥕🍎🥛',
+    icon: '[FOOD]',
+    color: '#10b981',
+    emoji: '[FOOD]',
     description: 'Obst, Gemüse, Milchprodukte, etc.'
   },
   drugstore: {
     name: 'Drogerie & Kosmetik',
-    icon: '💅',
-    color: '#ec4899', // pink
-    emoji: '🧴🧼💄',
+    icon: '[HEALTH]',
+    color: '#ec4899',
+    emoji: '[HEALTH]',
     description: 'Zahnpasta, Shampoo, Körperpflege'
   },
   hardware: {
     name: 'Baumarkt',
-    icon: '🔨',
-    color: '#f59e0b', // amber
-    emoji: '🔧⚒️🪛',
+    icon: '[TOOLS]',
+    color: '#f59e0b',
+    emoji: '[TOOLS]',
     description: 'Werkzeuge, Nägel, Farbe'
   },
   household: {
     name: 'Haushalt',
-    icon: '🏠',
-    color: '#3b82f6', // blue
-    emoji: '🧻🧽🧴',
+    icon: '[HOME]',
+    color: '#3b82f6',
+    emoji: '[HOME]',
     description: 'Putzmittel, Wäsche, Zubehör'
   },
   pets: {
     name: 'Haustiere',
-    icon: '🐾',
-    color: '#8b5cf6', // purple
-    emoji: '🐕🐈🦴',
+    icon: '[PETS]',
+    color: '#8b5cf6',
+    emoji: '[PETS]',
     description: 'Tierfutter, Zubehör, Medikamente'
   },
   clothing: {
     name: 'Kleidung & Schuhe',
-    icon: '👕',
-    color: '#06b6d4', // cyan
-    emoji: '👔👗👟',
+    icon: '[FASHION]',
+    color: '#06b6d4',
+    emoji: '[FASHION]',
     description: 'Klamotten, Schuhe, Accessoires'
   },
   office: {

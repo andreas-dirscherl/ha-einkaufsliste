@@ -145,7 +145,7 @@ export class NotificationManager {
   static async sendWebPush(userId, options) {
     // Implementation requires webpush library
     // For now, this is a placeholder
-    console.log(`📧 Push notification to user ${userId}:`, options.title);
+    console.log(`[NOTIFY] Push notification to user ${userId}:`, options.title);
   }
 
   /**

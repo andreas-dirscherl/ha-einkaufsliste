@@ -25,7 +25,7 @@ export class WebSocketClient {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}`;
 
-        console.log('🔗 Connecting to WebSocket:', wsUrl);
+        console.log('[CONNECT] Connecting to WebSocket:', wsUrl);
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {

@@ -25,7 +25,7 @@ export function initWebSocketServer(server) {
     let userId = null;
     let connectedLists = new Set();
 
-    console.log('🔗 WebSocket client connected');
+    console.log('[CONNECT] WebSocket client connected');
 
     /**
      * Message Handler
@@ -73,7 +73,7 @@ export function initWebSocketServer(server) {
      * Connection Close
      */
     ws.on('close', () => {
-      console.log('🔌 WebSocket client disconnected');
+      console.log('[DISCONNECT] WebSocket client disconnected');
       
       // Remove from subscriptions
       for (const [listId, subscribers] of listSubscriptions.entries()) {

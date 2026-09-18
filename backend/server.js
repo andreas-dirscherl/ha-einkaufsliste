@@ -974,9 +974,9 @@ app.get('/api/health', (req, res) => {
 const wss = initWebSocketServer(server);
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🛒 Shopping List Server running on http://0.0.0.0:${PORT}`);
+  console.log(`[OK] Shopping List Server running on http://0.0.0.0:${PORT}`);
   console.log(`📱 Open http://localhost:${PORT}/setup.html to initialize`);
-  console.log(`🔗 WebSocket ready for real-time sync`);
+  console.log(`[OK] WebSocket ready for real-time sync`);
   
   // Initialize HA connection if setup is complete
   if (isSetupComplete()) {
