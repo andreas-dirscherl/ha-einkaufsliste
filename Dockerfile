@@ -41,9 +41,8 @@ COPY assets ./assets
 COPY package*.json ./
 COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
-# Create data directory for SQLite with write permissions
-RUN mkdir -p /app/data && chmod 777 /app/data && \
-    chmod +x /app/docker-entrypoint.sh
+# Make entrypoint executable
+RUN chmod +x /app/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 3000

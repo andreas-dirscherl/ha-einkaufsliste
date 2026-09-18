@@ -6,16 +6,8 @@ import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// Determine DB_PATH with fallback
-let DB_PATH = process.env.DB_PATH;
-if (!DB_PATH) {
-  DB_PATH = path.join(__dirname, '..', 'data', 'app.db');
-}
-
-// Ensure absolute path
-if (!path.isAbsolute(DB_PATH)) {
-  DB_PATH = path.resolve(DB_PATH);
-}
+// Use /app/app.db as default (in container filesystem, not on mounted volume)
+const DB_PATH = '/app/app.db';
 
 console.log(`📁 Database path: ${DB_PATH}`);
 
@@ -25,20 +17,6 @@ let db = null;
  * Initialize SQLite database with all required tables
  */
 export function initializeDatabase() {
-  // Ensure data directory exists with proper permissions
-  const dataDir = path.dirname(DB_PATH);
-  console.log(`📁 Creating directory if not exists: ${dataDir}`);
-  
-  try {
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true, mode: 0o777 });
-      console.log(`✅ Created directory: ${dataDir}`);
-    }
-  } catch (err) {
-    console.error(`❌ Failed to create directory: ${err.message}`);
-    throw err;
-  }
-
   try {
     db = new Database(DB_PATH);
     console.log(`✅ Database opened successfully`);
@@ -47,8 +25,7 @@ export function initializeDatabase() {
     throw err;
   }
 
-  // Use TRUNCATE journal mode instead of WAL for better compatibility with network/cache drives
-  // WAL mode has issues on Unraid cache drives with fcntl locking
+  // Use TRUNCATE journal mode for better compatibility
   try {
     db.pragma('journal_mode = TRUNCATE');
     console.log(`✅ Journal mode set to TRUNCATE`);
