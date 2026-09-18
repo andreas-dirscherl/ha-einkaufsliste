@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Shopping basket centered for maskable icon -->
+  <g transform="translate(256, 256)">
+    <path d="M -80 -40 L -93 53 Q -93 67 -80 67 L 80 67 Q 93 67 93 53 L 80 -40 Z" 
+          fill="#667eea" stroke="#667eea" stroke-width="6" stroke-linejoin="round"/>
+    <line x1="-67" y1="-40" x2="-54" y2="-67" stroke="#667eea" stroke-width="8" stroke-linecap="round"/>
+    <line x1="0" y1="-40" x2="0" y2="-80" stroke="#667eea" stroke-width="8" stroke-linecap="round"/>
+    <line x1="67" y1="-40" x2="54" y2="-67" stroke="#667eea" stroke-width="8" stroke-linecap="round"/>
+    
+    <!-- Check mark -->
+    <path d="M -27 13 L -8 32 L 40 -13" 
+          fill="none" stroke="#667eea" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

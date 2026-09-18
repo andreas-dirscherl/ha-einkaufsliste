@@ -1,0 +1,36 @@
+{
+  "name": "ha-shopping-list",
+  "version": "1.0.0",
+  "description": "Ultra-fast shopping list PWA with Home Assistant integration",
+  "main": "backend/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node backend/server.js",
+    "dev": "NODE_ENV=development node backend/server.js",
+    "init-db": "node backend/init-db.js"
+  },
+  "keywords": [
+    "home-assistant",
+    "shopping-list",
+    "pwa",
+    "offline-first"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "better-sqlite3": "^9.2.2",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.1.2",
+    "crypto": "^1.0.1",
+    "dotenv": "^16.3.1",
+    "axios": "^1.6.5",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

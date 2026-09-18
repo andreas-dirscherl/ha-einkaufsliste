@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  <!-- Background -->
+  <rect width="192" height="192" rx="45" fill="url(#grad)"/>
+  
+  <!-- Shopping basket -->
+  <g transform="translate(96, 96)">
+    <path d="M -30 -15 L -35 20 Q -35 25 -30 25 L 30 25 Q 35 25 35 20 L 30 -15 Z" 
+          fill="white" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+    <line x1="-25" y1="-15" x2="-20" y2="-25" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="0" y1="-15" x2="0" y2="-30" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    <line x1="25" y1="-15" x2="20" y2="-25" stroke="white" stroke-width="3" stroke-linecap="round"/>
+    
+    <!-- Check mark -->
+    <path d="M -10 5 L -3 12 L 15 -5" 
+          fill="none" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

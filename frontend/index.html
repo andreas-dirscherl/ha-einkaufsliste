@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Einkaufsliste">
+  <meta name="theme-color" content="#667eea">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/assets/icon-192.svg">
+  <link rel="apple-touch-icon" href="/assets/icon-192.svg">
+  
+  <title>🛒 Einkaufsliste</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    body {
+      background: #f8f9fa;
+      overflow-y: auto;
+      -webkit-user-select: none;
+      user-select: none;
+    }
+    
+    .app-container {
+      max-width: 480px;
+      margin: 0 auto;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .lists-container {
+      flex: 1;
+      overflow-y: auto;
+    }
+
+    .input-area {
+      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    }
+
+    /* Smooth animations */
+    .item-enter {
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .item-exit {
+      animation: slideOut 0.2s ease-out;
+    }
+
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(100%);
+      }
+    }
+
+    /* Checked item styling */
+    .item-completed {
+      opacity: 0.6;
+    }
+
+    .item-completed .item-text {
+      text-decoration: line-through;
+      color: #999;
+    }
+
+    /* Offline indicator */
+    .offline-badge {
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      right: 20px;
+      max-width: calc(480px - 40px);
+      margin: 0 auto;
+    }
+
+    /* Safe area padding for notches */
+    .safe-top {
+      padding-top: max(0.5rem, env(safe-area-inset-top));
+    }
+
+    .safe-bottom {
+      padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div id="app" class="app-container">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-10 safe-top">
+      <div class="px-4 py-3 flex items-center justify-between">
+        <h1 class="text-xl font-bold text-gray-800">🛒 Einkaufsliste</h1>
+        <button id="menuBtn" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" title="Menü">
+          ⚙️
+        </button>
+      </div>
+
+      <!-- List selector -->
+      <div class="px-4 pb-3">
+        <select id="listSelector" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500">
+          <option value="">Wähle eine Liste...</option>
+        </select>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <div class="lists-container">
+      <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center p-8">
+        <div class="text-6xl mb-4">📝</div>
+        <p class="text-gray-500">Wähle eine Liste aus Home Assistant</p>
+      </div>
+
+      <div id="listContent" class="hidden">
+        <div id="itemsList" class="divide-y"></div>
+      </div>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-area bg-white border-t border-gray-200 sticky bottom-0">
+      <div class="px-4 py-3 flex gap-2">
+        <input 
+          type="text" 
+          id="itemInput" 
+          placeholder="Neuen Artikel hinzufügen..."
+          class="flex-1 px-4 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white"
+          autocomplete="off"
+        >
+        <button 
+          id="addBtn" 
+          class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition"
+        >
+          +
+        </button>
+      </div>
+
+      <!-- Offline indicator -->
+      <div id="offlineBadge" class="hidden mx-4 mb-3 p-2 bg-yellow-100 text-yellow-800 text-xs rounded-lg text-center">
+        📡 Offline - Änderungen werden später synchronisiert
+      </div>
+    </div>
+  </div>
+
+  <!-- Menu Modal -->
+  <div id="menuModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end">
+    <div class="w-full bg-white rounded-t-2xl p-6 pb-8">
+      <h2 class="text-lg font-bold mb-4">Einstellungen</h2>
+      
+      <button id="logoutBtn" class="w-full px-4 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium">
+        🚪 Abmelden
+      </button>
+    </div>
+  </div>
+
+  <script>
+    // Register Service Worker for PWA
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.log('Service Worker registration failed:', err);
+      });
+    }
+
+    // App State
+    let currentList = null;
+    let isOnline = navigator.onLine;
+    let token = localStorage.getItem('token');
+
+    const app = {
+      $: (id) => document.getElementById(id),
+      $all: (sel) => document.querySelectorAll(sel),
+      addClass: (el, cls) => el.classList.add(cls),
+      removeClass: (el, cls) => el.classList.remove(cls),
+      hasClass: (el, cls) => el.classList.contains(cls),
+    };
+
+    // Check if authenticated
+    if (!token) {
+      window.location.href = '/setup.html';
+    }
+
+    // API calls
+    async function apiCall(method, url, body = null) {
+      const options = {
+        method,
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+      
+      if (body) options.body = JSON.stringify(body);
+
+      try {
+        const response = await fetch(url, options);
+        if (response.status === 401) {
+          localStorage.removeItem('token');
+          window.location.href = '/setup.html';
+          return null;
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('API Error:', error);
+        return null;
+      }
+    }
+
+    // Load lists
+    async function loadLists() {
+      const data = await apiCall('GET', '/api/lists');
+      if (!data) return;
+
+      const selector = app.$('listSelector');
+      selector.innerHTML = '<option value="">Wähle eine Liste...</option>';
+      
+      data.forEach(list => {
+        const option = document.createElement('option');
+        option.value = list.id;
+        option.textContent = list.name;
+        selector.appendChild(option);
+      });
+    }
+
+    // Load list items
+    async function loadList(listId) {
+      currentList = listId;
+      const data = await apiCall('GET', `/api/lists/${listId}`);
+      if (!data) return;
+
+      const itemsList = app.$('itemsList');
+      itemsList.innerHTML = '';
+
+      (data.items || []).sort((a, b) => {
+        if (a.is_completed !== b.is_completed) return a.is_completed - b.is_completed;
+        return new Date(b.created_at) - new Date(a.created_at);
+      }).forEach(item => {
+        const itemEl = createItemElement(item);
+        itemsList.appendChild(itemEl);
+      });
+
+      app.$('emptyState').classList.add('hidden');
+      app.$('listContent').classList.remove('hidden');
+      app.$('itemInput').focus();
+    }
+
+    // Create item element
+    function createItemElement(item) {
+      const div = document.createElement('div');
+      div.className = `item-enter p-4 hover:bg-gray-50 cursor-pointer transition ${item.is_completed ? 'item-completed' : ''}`;
+      div.dataset.itemId = item.id;
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = item.is_completed;
+      checkbox.className = 'mr-3 w-5 h-5 cursor-pointer accent-purple-600';
+
+      const label = document.createElement('label');
+      label.className = 'item-text cursor-pointer flex-1 ml-2 select-none';
+      label.textContent = item.title;
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'text-red-500 hover:text-red-700 text-sm opacity-0 hover:opacity-100 transition ml-2';
+      deleteBtn.textContent = '🗑️';
+      deleteBtn.type = 'button';
+
+      const container = document.createElement('div');
+      container.className = 'flex items-center';
+      container.appendChild(checkbox);
+      container.appendChild(label);
+      container.appendChild(deleteBtn);
+      div.appendChild(container);
+
+      // Event listeners
+      checkbox.addEventListener('change', () => toggleItem(item.id, checkbox.checked));
+      deleteBtn.addEventListener('click', () => deleteItem(item.id, div));
+
+      return div;
+    }
+
+    // Add item
+    async function addItem() {
+      const input = app.$('itemInput');
+      const title = input.value.trim();
+
+      if (!title || !currentList) return;
+
+      input.value = '';
+      input.focus();
+
+      const result = await apiCall('POST', `/api/lists/${currentList}/items`, { title });
+      if (result) {
+        const itemEl = createItemElement(result);
+        app.$('itemsList').prepend(itemEl);
+      }
+    }
+
+    // Toggle item
+    async function toggleItem(itemId, isCompleted) {
+      await apiCall('PATCH', `/api/items/${itemId}`, { isCompleted });
+    }
+
+    // Delete item
+    async function deleteItem(itemId, element) {
+      element.classList.add('item-exit');
+      setTimeout(async () => {
+        await apiCall('DELETE', `/api/items/${itemId}`);
+        element.remove();
+      }, 200);
+    }
+
+    // Event listeners
+    app.$('listSelector').addEventListener('change', (e) => {
+      if (e.target.value) {
+        loadList(e.target.value);
+      }
+    });
+
+    app.$('addBtn').addEventListener('click', addItem);
+    app.$('itemInput').addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') addItem();
+    });
+
+    app.$('menuBtn').addEventListener('click', () => {
+      app.$('menuModal').classList.remove('hidden');
+    });
+
+    app.$('menuModal').addEventListener('click', (e) => {
+      if (e.target === app.$('menuModal')) {
+        app.$('menuModal').classList.add('hidden');
+      }
+    });
+
+    app.$('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/setup.html';
+    });
+
+    // Online/offline detection
+    window.addEventListener('online', () => {
+      isOnline = true;
+      app.$('offlineBadge').classList.add('hidden');
+    });
+
+    window.addEventListener('offline', () => {
+      isOnline = false;
+      app.$('offlineBadge').classList.remove('hidden');
+    });
+
+    // Initialize
+    loadLists();
+  </script>
+</body>
+</html>
