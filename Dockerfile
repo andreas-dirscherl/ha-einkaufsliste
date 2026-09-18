@@ -39,9 +39,11 @@ COPY backend ./backend
 COPY frontend ./frontend
 COPY assets ./assets
 COPY package*.json ./
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
 
 # Create data directory for SQLite with write permissions
-RUN mkdir -p /app/data && chmod 777 /app/data
+RUN mkdir -p /app/data && chmod 777 /app/data && \
+    chmod +x /app/docker-entrypoint.sh
 
 # Expose port
 EXPOSE 3000
@@ -51,7 +53,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD node -e "require('http').get('http://localhost:3000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
 # Use dumb-init to handle signals properly
-ENTRYPOINT ["dumb-init", "--"]
-
-# Start application
-CMD ["node", "backend/server.js"]
+ENTRYPOINT ["dumb-init", "--", "/app/docker-entrypoint.sh"]
