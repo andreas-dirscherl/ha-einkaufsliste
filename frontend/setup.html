@@ -20,7 +20,7 @@
       <form id="setupForm" class="space-y-6">
         <!-- Admin User Section -->
         <div class="border-b pb-6">
-          <h2 class="text-lg font-semibold text-gray-700 mb-4">👤 Admin Account</h2>
+          <h2 class="text-lg font-semibold text-gray-700 mb-4">Admin Account</h2>
           
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Benutzername</label>
@@ -95,7 +95,7 @@
             id="submitBtn"
             class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
           >
-            ✅ Setup abschließen
+            Complete Setup
           </button>
         </div>
 
@@ -137,9 +137,9 @@
         });
 
         if (response.ok) {
-          showMessage('✅ Verbindung zu Home Assistant erfolgreich!', 'success');
+          showMessage('Connection to Home Assistant successful!', 'success');
         } else {
-          showMessage('❌ Verbindung fehlgeschlagen. Überprüfe URL und Token.', 'error');
+          showMessage('Connection failed. Check URL and token.', 'error');
         }
       } catch (error) {
         showMessage(`❌ Fehler: ${error.message}`, 'error');
@@ -172,7 +172,7 @@
         const result = await response.json();
 
         if (!response.ok) {
-          showMessage(`❌ ${result.error}`, 'error');
+          showMessage(`Error: ${result.error}`, 'error');
           return;
         }
 
@@ -180,7 +180,7 @@
         localStorage.setItem('token', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
         
-        showMessage('✅ Setup abgeschlossen! Weiterleitung...', 'success');
+        showMessage('Setup completed! Redirecting...', 'success');
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
@@ -188,7 +188,7 @@
         showMessage(`❌ Fehler: ${error.message}`, 'error');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = '✅ Setup abschließen';
+        submitBtn.textContent = 'Setup completed';
       }
     });
   </script>

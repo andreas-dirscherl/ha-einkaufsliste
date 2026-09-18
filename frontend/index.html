@@ -149,7 +149,7 @@
     <!-- Main content -->
     <div class="lists-container">
       <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center p-8">
-        <div class="text-6xl mb-4">📝</div>
+        <div class="text-6xl mb-4">�</div>
         <p class="text-gray-500">Wähle eine Liste aus Home Assistant</p>
       </div>
 
@@ -277,7 +277,7 @@
           break;
       }
 
-      console.log(`🔄 Real-time update from user ${changeData.userId}:`, changeData.type);
+      console.log(`[UPDATE] Real-time update from user ${changeData.userId}:`, changeData.type);
     }
 
     // API calls
@@ -333,7 +333,7 @@
         }
 
         if (result.recommendedList) {
-          console.log(`📍 Auto-selecting list: ${result.recommendedList.name} (zone: ${result.zone})`);
+          console.log(`Auto-selecting list: ${result.recommendedList.name} (zone: ${result.zone})`);
           
           // Auto-select the list
           const selector = app.$('listSelector');
@@ -345,7 +345,7 @@
           // Show info notification (optional)
           const infoEl = document.createElement('div');
           infoEl.className = 'fixed top-4 right-4 p-4 bg-blue-100 text-blue-700 rounded-lg shadow-lg max-w-xs z-50 animate-pulse';
-          infoEl.innerHTML = `📍 <strong>${result.recommendedList.name}</strong> ist in Ihrer Nähe (${result.zone})`;
+          infoEl.innerHTML = `<strong>${result.recommendedList.name}</strong> is nearby (${result.zone})`;
           document.body.appendChild(infoEl);
 
           // Auto-remove after 5 seconds
@@ -447,7 +447,7 @@
 
       const deleteBtn = document.createElement('button');
       deleteBtn.className = 'text-red-500 hover:text-red-700 text-sm opacity-0 hover:opacity-100 transition ml-2';
-      deleteBtn.textContent = '🗑️';
+      deleteBtn.textContent = 'Delete';
       deleteBtn.type = 'button';
 
       const container = document.createElement('div');

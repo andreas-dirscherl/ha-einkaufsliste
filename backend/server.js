@@ -556,13 +556,22 @@ app.post('/api/admin/sync/list/:listId', verifyToken, requireAdmin, async (req, 
 app.get('/api/lists', verifyToken, (req, res) => {
   try {
     const db = getDatabase();
-    const lists = db.prepare(`
-      SELECT l.* FROM lists l
-      JOIN list_permissions lp ON l.id = lp.list_id
-      WHERE lp.user_id = ?
-    `).all(req.user.id);
-
-    res.json(lists);
+    
+    // Admins see all lists, regular users only see lists they have permissions for
+    if (req.user.is_admin) {
+      const lists = db.prepare(`
+        SELECT * FROM lists ORDER BY name
+      `).all();
+      res.json(lists);
+    } else {
+      const lists = db.prepare(`
+        SELECT l.* FROM lists l
+        JOIN list_permissions lp ON l.id = lp.list_id
+        WHERE lp.user_id = ? AND lp.can_read = 1
+        ORDER BY l.name
+      `).all(req.user.id);
+      res.json(lists);
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
