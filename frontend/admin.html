@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Dashboard - Einkaufsliste</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { background: #f8f9fa; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+    .tab-btn.active { @apply bg-purple-600 text-white; }
+    .tab-btn { @apply bg-gray-200 text-gray-800; }
+  </style>
+</head>
+<body>
+  <div class="min-h-screen flex flex-col">
+    <!-- Header -->
+    <header class="bg-white border-b border-gray-200 shadow">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-gray-800">⚙️ Admin Dashboard</h1>
+        <button id="logoutBtn" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
+          🚪 Abmelden
+        </button>
+      </div>
+    </header>
+
+    <!-- Main content -->
+    <div class="flex-1 max-w-7xl mx-auto w-full">
+      <!-- Tabs -->
+      <div class="bg-white border-b border-gray-200 mt-6 rounded-t-lg">
+        <div class="flex gap-4 px-6 py-4">
+          <button class="tab-btn active px-4 py-2 rounded transition" data-tab="users">👥 Benutzer</button>
+          <button class="tab-btn px-4 py-2 rounded transition" data-tab="lists">📋 Listen & Berechtigungen</button>
+          <button class="tab-btn px-4 py-2 rounded transition" data-tab="sync">🔄 HA Synchronisation</button>
+        </div>
+      </div>
+
+      <!-- Tab Content -->
+      <div class="bg-white p-6 rounded-b-lg shadow">
+
+        <!-- USERS TAB -->
+        <div id="users" class="tab-content active">
+          <h2 class="text-xl font-semibold mb-4">Benutzerverwaltung</h2>
+
+          <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="font-semibold mb-3">Neuen Benutzer erstellen</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <input 
+                type="text" 
+                id="newUsername" 
+                placeholder="Benutzername"
+                class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+              >
+              <input 
+                type="password" 
+                id="newPassword" 
+                placeholder="Passwort (min. 8 Zeichen)"
+                class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+              >
+              <label class="flex items-center gap-2 px-3 py-2">
+                <input type="checkbox" id="newIsAdmin">
+                <span>Admin</span>
+              </label>
+              <button id="createUserBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                ➕ Erstellen
+              </button>
+            </div>
+            <div id="userMessage" class="mt-3 hidden p-2 rounded text-sm"></div>
+          </div>
+
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100 border-b-2 border-gray-300">
+              <tr>
+                <th class="text-left px-4 py-2">Benutzername</th>
+                <th class="text-left px-4 py-2">Admin</th>
+                <th class="text-left px-4 py-2">Erstellt</th>
+                <th class="text-center px-4 py-2">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="usersList" class="divide-y"></tbody>
+          </table>
+        </div>
+
+        <!-- LISTS & PERMISSIONS TAB -->
+        <div id="lists" class="tab-content">
+          <h2 class="text-xl font-semibold mb-4">Listen & Berechtigungen</h2>
+
+          <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="font-semibold mb-3">Neue Berechtigung hinzufügen</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <select id="permUser" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                <option value="">Benutzer wählen...</option>
+              </select>
+              <select id="permList" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                <option value="">Liste wählen...</option>
+              </select>
+              <div class="flex gap-2">
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" id="permRead" checked>
+                  <span>Lesen</span>
+                </label>
+                <label class="flex items-center gap-2">
+                  <input type="checkbox" id="permWrite" checked>
+                  <span>Schreiben</span>
+                </label>
+              </div>
+              <button id="addPermBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                ➕ Hinzufügen
+              </button>
+            </div>
+            <div id="permMessage" class="mt-3 hidden p-2 rounded text-sm"></div>
+          </div>
+
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100 border-b-2 border-gray-300">
+              <tr>
+                <th class="text-left px-4 py-2">Benutzer</th>
+                <th class="text-left px-4 py-2">Liste</th>
+                <th class="text-left px-4 py-2">HA Entity</th>
+                <th class="text-center px-4 py-2">Lesen</th>
+                <th class="text-center px-4 py-2">Schreiben</th>
+                <th class="text-center px-4 py-2">Aktionen</th>
+              </tr>
+            </thead>
+            <tbody id="permissionsList" class="divide-y"></tbody>
+          </table>
+        </div>
+
+        <!-- SYNC TAB -->
+        <div id="sync" class="tab-content">
+          <h2 class="text-xl font-semibold mb-4">Home Assistant Synchronisation</h2>
+
+          <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <h3 class="font-semibold mb-3">Listen von Home Assistant aktualisieren</h3>
+            <p class="text-sm text-gray-600 mb-3">
+              Klicke um alle Listen und Artikel aus Home Assistant zu synchronisieren.
+            </p>
+            <button id="syncAllBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+              🔄 Alle Listen synchronisieren
+            </button>
+            <div id="syncMessage" class="mt-3 hidden p-3 rounded text-sm"></div>
+          </div>
+
+          <h3 class="font-semibold mb-3">Einzelne Listen synchronisieren</h3>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100 border-b-2 border-gray-300">
+              <tr>
+                <th class="text-left px-4 py-2">Listenname</th>
+                <th class="text-left px-4 py-2">HA Entity</th>
+                <th class="text-center px-4 py-2">Artikel</th>
+                <th class="text-center px-4 py-2">Aktion</th>
+              </tr>
+            </thead>
+            <tbody id="listsSyncTable" class="divide-y"></tbody>
+          </table>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/setup.html';
+    }
+
+    // API Helper
+    async function apiCall(method, url, body = null) {
+      const options = {
+        method,
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      };
+      if (body) options.body = JSON.stringify(body);
+
+      const response = await fetch(url, options);
+      if (response.status === 401) {
+        localStorage.removeItem('token');
+        window.location.href = '/setup.html';
+      }
+      return await response.json();
+    }
+
+    // Show message
+    function showMessage(elId, text, type = 'success') {
+      const el = document.getElementById(elId);
+      el.textContent = text;
+      el.className = `mt-3 p-2 rounded text-sm ${
+        type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
+      }`;
+      el.classList.remove('hidden');
+    }
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        e.target.classList.add('active');
+        document.getElementById(e.target.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Logout
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      localStorage.removeItem('token');
+      window.location.href = '/setup.html';
+    });
+
+    // ============ USERS TAB ============
+
+    async function loadUsers() {
+      const data = await apiCall('GET', '/api/admin/users');
+      const tbody = document.getElementById('usersList');
+      tbody.innerHTML = '';
+
+      data.forEach(user => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-4 py-2">${user.username}</td>
+          <td class="px-4 py-2">${user.is_admin ? '✅ Admin' : '❌ Nein'}</td>
+          <td class="px-4 py-2">${new Date(user.created_at).toLocaleDateString('de')}</td>
+          <td class="px-4 py-2 text-center">
+            <button class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200" 
+                    onclick="deleteUser(${user.id})">
+              🗑️ Löschen
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById('createUserBtn').addEventListener('click', async () => {
+      const username = document.getElementById('newUsername').value;
+      const password = document.getElementById('newPassword').value;
+      const isAdmin = document.getElementById('newIsAdmin').checked;
+
+      if (!username || !password) {
+        showMessage('userMessage', 'Felder ausfüllen', 'error');
+        return;
+      }
+
+      const result = await apiCall('POST', '/api/admin/users', { username, password, isAdmin });
+      
+      if (result.error) {
+        showMessage('userMessage', result.error, 'error');
+      } else {
+        document.getElementById('newUsername').value = '';
+        document.getElementById('newPassword').value = '';
+        document.getElementById('newIsAdmin').checked = false;
+        showMessage('userMessage', `✅ Benutzer "${username}" erstellt`);
+        loadUsers();
+      }
+    });
+
+    async function deleteUser(userId) {
+      if (!confirm('Wirklich löschen?')) return;
+      await apiCall('DELETE', `/api/admin/users/${userId}`);
+      loadUsers();
+    }
+
+    // ============ PERMISSIONS TAB ============
+
+    async function loadPermissions() {
+      const data = await apiCall('GET', '/api/admin/permissions');
+      const tbody = document.getElementById('permissionsList');
+      tbody.innerHTML = '';
+
+      data.forEach(perm => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-4 py-2">${perm.username}</td>
+          <td class="px-4 py-2">${perm.name}</td>
+          <td class="px-4 py-2 text-xs font-mono">${perm.ha_entity_id}</td>
+          <td class="px-4 py-2 text-center">${perm.can_read ? '✅' : '❌'}</td>
+          <td class="px-4 py-2 text-center">${perm.can_write ? '✅' : '❌'}</td>
+          <td class="px-4 py-2 text-center">
+            <button class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200" 
+                    onclick="deletePermission(${perm.id})">
+              🗑️ Entfernen
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    async function loadUsersAndLists() {
+      const users = await apiCall('GET', '/api/admin/users');
+      const lists = await apiCall('GET', '/api/lists');
+
+      const userSelect = document.getElementById('permUser');
+      userSelect.innerHTML = '<option value="">Benutzer wählen...</option>';
+      users.forEach(u => {
+        const opt = document.createElement('option');
+        opt.value = u.id;
+        opt.textContent = u.username;
+        userSelect.appendChild(opt);
+      });
+
+      const listSelect = document.getElementById('permList');
+      listSelect.innerHTML = '<option value="">Liste wählen...</option>';
+      lists.forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id;
+        opt.textContent = l.name;
+        listSelect.appendChild(opt);
+      });
+    }
+
+    document.getElementById('addPermBtn').addEventListener('click', async () => {
+      const userId = document.getElementById('permUser').value;
+      const listId = document.getElementById('permList').value;
+      const canRead = document.getElementById('permRead').checked;
+      const canWrite = document.getElementById('permWrite').checked;
+
+      if (!userId || !listId) {
+        showMessage('permMessage', 'Benutzer und Liste auswählen', 'error');
+        return;
+      }
+
+      await apiCall('POST', '/api/admin/permissions', { userId, listId, canRead, canWrite });
+      showMessage('permMessage', '✅ Berechtigung hinzugefügt');
+      loadPermissions();
+    });
+
+    async function deletePermission(permId) {
+      if (!confirm('Berechtigung entfernen?')) return;
+      await apiCall('DELETE', `/api/admin/permissions/${permId}`);
+      loadPermissions();
+    }
+
+    // ============ SYNC TAB ============
+
+    async function loadListsForSync() {
+      const lists = await apiCall('GET', '/api/admin/permissions').then(perms => {
+        return perms.map(p => ({ id: p.list_id, name: p.name, ha_entity_id: p.ha_entity_id }));
+      }).then(arr => {
+        // Remove duplicates
+        const seen = new Set();
+        return arr.filter(item => {
+          if (seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        });
+      });
+
+      const tbody = document.getElementById('listsSyncTable');
+      tbody.innerHTML = '';
+
+      for (const list of lists) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td class="px-4 py-2">${list.name}</td>
+          <td class="px-4 py-2 text-xs font-mono">${list.ha_entity_id}</td>
+          <td class="px-4 py-2 text-center">
+            <span id="count-${list.id}">-</span>
+          </td>
+          <td class="px-4 py-2 text-center">
+            <button class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200" 
+                    onclick="syncSingleList(${list.id})">
+              🔄 Sync
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      }
+    }
+
+    document.getElementById('syncAllBtn').addEventListener('click', async () => {
+      const btn = document.getElementById('syncAllBtn');
+      btn.disabled = true;
+      btn.textContent = '⏳ Synchronisiere...';
+
+      const result = await apiCall('POST', '/api/admin/sync/lists');
+      
+      if (result.error) {
+        showMessage('syncMessage', result.error, 'error');
+      } else {
+        showMessage('syncMessage', `✅ ${result.listsCount} Listen synchronisiert`);
+      }
+
+      btn.disabled = false;
+      btn.textContent = '🔄 Alle Listen synchronisieren';
+      loadListsForSync();
+    });
+
+    async function syncSingleList(listId) {
+      const result = await apiCall('POST', `/api/admin/sync/list/${listId}`);
+      if (!result.error) {
+        showMessage('syncMessage', '✅ Liste synchronisiert');
+        loadListsForSync();
+      }
+    }
+
+    // Init
+    loadUsers();
+    loadPermissions();
+    loadUsersAndLists();
+    loadListsForSync();
+  </script>
+</body>
+</html>

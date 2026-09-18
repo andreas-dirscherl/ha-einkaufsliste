@@ -13,6 +13,14 @@ import {
   saveSetup,
   decryptToken
 } from './database.js';
+import {
+  initHAConnection,
+  syncHALists,
+  syncHAListItems,
+  pushItemToHA,
+  createItemInHA,
+  deleteItemFromHA
+} from './ha-integration.js';
 
 dotenv.config();
 
@@ -69,6 +77,16 @@ function verifyToken(req, res, next) {
 }
 
 /**
+ * Middleware: Verify admin access
+ */
+function requireAdmin(req, res, next) {
+  if (!req.user?.isAdmin) {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  next();
+}
+
+/**
  * SETUP WIZARD ROUTES
  */
 
@@ -112,6 +130,18 @@ app.post('/api/setup/init', async (req, res) => {
 
     // Save to database
     saveSetup(haUrl, haToken, adminUsername, passwordHash);
+
+    // Initialize HA connection
+    initHAConnection();
+
+    // Sync HA lists immediately
+    try {
+      const count = await syncHALists();
+      console.log(`✅ Synced ${count} lists from Home Assistant`);
+    } catch (error) {
+      console.error('⚠️ Failed to sync HA lists:', error.message);
+      // Don't fail setup, but warn admin
+    }
 
     // Generate JWT token
     const token = jwt.sign(
@@ -168,6 +198,178 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 /**
+ * ADMIN ROUTES
+ */
+
+// GET /api/admin/users - List all users
+app.get('/api/admin/users', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDatabase();
+    const users = db.prepare('SELECT id, username, is_admin, created_at FROM users ORDER BY created_at DESC').all();
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/admin/users - Create new user (admin only)
+app.post('/api/admin/users', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const { username, password, isAdmin } = req.body;
+    const db = getDatabase();
+
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password required' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Password must be at least 8 characters' });
+    }
+
+    // Check if user exists
+    const existing = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+    if (existing) {
+      return res.status(400).json({ error: 'Username already exists' });
+    }
+
+    const passwordHash = await bcryptjs.hash(password, 10);
+
+    const result = db.prepare(`
+      INSERT INTO users (username, password_hash, is_admin)
+      VALUES (?, ?, ?)
+    `).run(username, passwordHash, isAdmin ? 1 : 0);
+
+    const user = db.prepare('SELECT id, username, is_admin, created_at FROM users WHERE id = ?')
+      .get(result.lastInsertRowid);
+
+    res.status(201).json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/admin/users/:userId - Delete user (admin only)
+app.delete('/api/admin/users/:userId', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDatabase();
+
+    if (parseInt(req.params.userId) === req.user.id) {
+      return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    db.prepare('DELETE FROM users WHERE id = ?').run(req.params.userId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PERMISSION MANAGEMENT
+ */
+
+// GET /api/admin/permissions - Get all user-list permissions
+app.get('/api/admin/permissions', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDatabase();
+    const permissions = db.prepare(`
+      SELECT 
+        lp.id,
+        lp.user_id,
+        lp.list_id,
+        lp.can_read,
+        lp.can_write,
+        u.username,
+        l.name,
+        l.ha_entity_id
+      FROM list_permissions lp
+      JOIN users u ON lp.user_id = u.id
+      JOIN lists l ON lp.list_id = l.id
+      ORDER BY u.username, l.name
+    `).all();
+    res.json(permissions);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/admin/permissions - Create or update permission
+app.post('/api/admin/permissions', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const { userId, listId, canRead, canWrite } = req.body;
+    const db = getDatabase();
+
+    if (!userId || !listId) {
+      return res.status(400).json({ error: 'userId and listId required' });
+    }
+
+    // Check if permission already exists
+    const existing = db.prepare(`
+      SELECT id FROM list_permissions WHERE user_id = ? AND list_id = ?
+    `).get(userId, listId);
+
+    if (existing) {
+      db.prepare(`
+        UPDATE list_permissions 
+        SET can_read = ?, can_write = ?
+        WHERE user_id = ? AND list_id = ?
+      `).run(canRead ? 1 : 0, canWrite ? 1 : 0, userId, listId);
+    } else {
+      db.prepare(`
+        INSERT INTO list_permissions (user_id, list_id, can_read, can_write)
+        VALUES (?, ?, ?, ?)
+      `).run(userId, listId, canRead ? 1 : 0, canWrite ? 1 : 0);
+    }
+
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/admin/permissions/:permissionId - Remove permission
+app.delete('/api/admin/permissions/:permissionId', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const db = getDatabase();
+    db.prepare('DELETE FROM list_permissions WHERE id = ?').run(req.params.permissionId);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * HA SYNC ROUTES
+ */
+
+// POST /api/admin/sync/lists - Force sync lists from HA
+app.post('/api/admin/sync/lists', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const count = await syncHALists();
+    res.json({ success: true, listsCount: count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/admin/sync/list/:listId - Force sync single list items
+app.post('/api/admin/sync/list/:listId', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const list = db.prepare('SELECT ha_entity_id FROM lists WHERE id = ?').get(req.params.listId);
+
+    if (!list) {
+      return res.status(404).json({ error: 'List not found' });
+    }
+
+    await syncHAListItems(list.ha_entity_id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+})
+
+/**
  * LISTS ROUTES
  */
 
@@ -203,7 +405,7 @@ app.get('/api/lists/:id', verifyToken, (req, res) => {
     }
 
     const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(req.params.id);
-    const items = db.prepare('SELECT * FROM items WHERE list_id = ? ORDER BY created_at DESC').all(req.params.id);
+    const items = db.prepare('SELECT * FROM items WHERE list_id = ? ORDER BY is_completed ASC, created_at DESC').all(req.params.id);
 
     res.json({ ...list, items });
   } catch (error) {
@@ -215,7 +417,7 @@ app.get('/api/lists/:id', verifyToken, (req, res) => {
  * ITEMS ROUTES
  */
 
-// POST /api/lists/:listId/items - Add item (with duplicate detection)
+// POST /api/lists/:listId/items - Add item (with duplicate detection + HA sync)
 app.post('/api/lists/:listId/items', verifyToken, async (req, res) => {
   try {
     const db = getDatabase();
@@ -243,6 +445,13 @@ app.post('/api/lists/:listId/items', verifyToken, async (req, res) => {
       db.prepare('UPDATE items SET is_completed = 0, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
         .run(existingItem.id);
 
+      // Push to HA
+      try {
+        await pushItemToHA(existingItem);
+      } catch (haError) {
+        console.warn('Failed to sync to HA:', haError.message);
+      }
+
       return res.json({
         ...existingItem,
         is_completed: 0,
@@ -250,21 +459,30 @@ app.post('/api/lists/:listId/items', verifyToken, async (req, res) => {
       });
     }
 
-    // Create new item
+    // Create new item locally first
     const result = db.prepare(`
       INSERT INTO items (list_id, title, description, ha_item_id)
       VALUES (?, ?, ?, ?)
     `).run(req.params.listId, title, description, `local_${Date.now()}`);
 
     const item = db.prepare('SELECT * FROM items WHERE id = ?').get(result.lastInsertRowid);
+
+    // Push to HA in background
+    try {
+      await createItemInHA(item);
+    } catch (haError) {
+      console.warn('Failed to create in HA:', haError.message);
+      // Item still created locally, will retry on sync
+    }
+
     res.status(201).json(item);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// PATCH /api/items/:itemId - Toggle item completion
-app.patch('/api/items/:itemId', verifyToken, (req, res) => {
+// PATCH /api/items/:itemId - Toggle item completion + sync to HA
+app.patch('/api/items/:itemId', verifyToken, async (req, res) => {
   try {
     const db = getDatabase();
     const { isCompleted } = req.body;
@@ -284,18 +502,28 @@ app.patch('/api/items/:itemId', verifyToken, (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    // Update locally
     db.prepare('UPDATE items SET is_completed = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
       .run(isCompleted ? 1 : 0, req.params.itemId);
 
     const updated = db.prepare('SELECT * FROM items WHERE id = ?').get(req.params.itemId);
+
+    // Push to HA in background
+    try {
+      await pushItemToHA(updated);
+    } catch (haError) {
+      console.warn('Failed to sync to HA:', haError.message);
+      // Item still updated locally
+    }
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
-// DELETE /api/items/:itemId - Delete item
-app.delete('/api/items/:itemId', verifyToken, (req, res) => {
+// DELETE /api/items/:itemId - Delete item + sync to HA
+app.delete('/api/items/:itemId', verifyToken, async (req, res) => {
   try {
     const db = getDatabase();
 
@@ -314,7 +542,16 @@ app.delete('/api/items/:itemId', verifyToken, (req, res) => {
       return res.status(403).json({ error: 'Access denied' });
     }
 
+    // Delete locally first
     db.prepare('DELETE FROM items WHERE id = ?').run(req.params.itemId);
+
+    // Delete from HA in background
+    try {
+      await deleteItemFromHA(item);
+    } catch (haError) {
+      console.warn('Failed to delete from HA:', haError.message);
+    }
+
     res.json({ success: true });
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -334,4 +571,9 @@ app.get('/api/health', (req, res) => {
 app.listen(PORT, () => {
   console.log(`🛒 Shopping List Server running on http://localhost:${PORT}`);
   console.log(`📱 Open http://localhost:${PORT}/setup.html to initialize`);
+  
+  // Initialize HA connection if setup is complete
+  if (isSetupComplete()) {
+    initHAConnection();
+  }
 });
