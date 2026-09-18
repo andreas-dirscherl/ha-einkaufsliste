@@ -29,7 +29,7 @@ export class WebSocketClient {
         this.ws = new WebSocket(wsUrl);
 
         this.ws.onopen = () => {
-          console.log('✅ WebSocket connected');
+          console.log('[OK] WebSocket connected');
           this.reconnectAttempts = 0;
 
           // Authenticate
@@ -48,7 +48,7 @@ export class WebSocketClient {
         };
 
         this.ws.onerror = (error) => {
-          console.error('❌ WebSocket error:', error);
+          console.error('[ERROR] WebSocket error:', error);
           this.emit('error', error);
           reject(error);
         };
@@ -83,16 +83,16 @@ export class WebSocketClient {
     switch (type) {
       case 'auth':
         if (message.success) {
-          console.log('✅ WebSocket authenticated');
+          console.log('[OK] WebSocket authenticated');
           this.emit('authenticated');
         } else {
-          console.error('❌ WebSocket auth failed:', message.error);
+          console.error('[ERROR] WebSocket auth failed:', message.error);
           this.emit('auth-failed', message.error);
         }
         break;
 
       case 'subscribed':
-        console.log(`👁️ Subscribed to list ${message.listId}`);
+        console.log(`[WATCH] Subscribed to list ${message.listId}`);
         this.connectedLists.add(message.listId);
         this.emit('subscribed', message.listId);
         break;
@@ -189,7 +189,7 @@ export class WebSocketClient {
         });
       }, delay);
     } else {
-      console.error('❌ Max reconnect attempts reached');
+      console.error('[ERROR] Max reconnect attempts reached');
       this.emit('reconnect-failed');
     }
   }

@@ -20,23 +20,23 @@ let db = null;
 export function initializeDatabase() {
   try {
     db = new Database(DB_PATH);
-    console.log(`✅ Database opened successfully`);
+    console.log(`[OK] Database opened successfully`);
   } catch (err) {
-    console.error(`❌ Failed to open database at ${DB_PATH}: ${err.message}`);
+    console.error(`[ERROR] Failed to open database at ${DB_PATH}: ${err.message}`);
     throw err;
   }
 
   // Use TRUNCATE journal mode for better compatibility
   try {
     db.pragma('journal_mode = TRUNCATE');
-    console.log(`✅ Journal mode set to TRUNCATE`);
+    console.log(`[OK] Journal mode set to TRUNCATE`);
   } catch (err) {
-    console.warn(`⚠️ Failed to set journal mode: ${err.message}`);
+    console.warn(`[WARN] Failed to set journal mode: ${err.message}`);
   }
   
   db.pragma('foreign_keys = ON');
   db.pragma('synchronous = NORMAL');
-  console.log(`✅ Database pragmas configured`);
+  console.log(`[OK] Database pragmas configured`);
 
   // Create tables if they don't exist
   createTables();

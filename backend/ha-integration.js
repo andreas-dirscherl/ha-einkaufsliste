@@ -16,7 +16,7 @@ export function initHAConnection() {
     console.warn('HA Config not found');
     return false;
   }
-  console.log('✅ HA Connection initialized');
+  console.log('[OK] HA Connection initialized');
   return true;
 }
 
@@ -238,7 +238,7 @@ export async function pushItemToHA(item) {
 
     const list = db.prepare('SELECT ha_entity_id FROM lists WHERE id = ?').get(item.list_id);
     if (!list || !item.ha_item_id) {
-      console.log('ℹ️ Item not synced to HA yet, skipping push');
+      console.log('[INFO] Item not synced to HA yet, skipping push');
       return;
     }
 
@@ -251,7 +251,7 @@ export async function pushItemToHA(item) {
         item: item.ha_item_id,
         status: 'completed'
       });
-      console.log(`✅ Marked as completed in HA: ${item.title}`);
+      console.log(`[OK] Marked as completed in HA: ${item.title}`);
     } else {
       // Item is not completed, set status to "needs_action"
       await client.post(`/api/services/todo/update_item`, {
@@ -259,13 +259,13 @@ export async function pushItemToHA(item) {
         item: item.ha_item_id,
         status: 'needs_action'
       });
-      console.log(`✅ Marked as needs_action in HA: ${item.title}`);
+      console.log(`[OK] Marked as needs_action in HA: ${item.title}`);
     }
 
     // Update sync timestamp in local DB
     db.prepare('UPDATE items SET ha_synced_at = CURRENT_TIMESTAMP WHERE id = ?').run(item.id);
   } catch (error) {
-    console.error(`❌ Failed to push item to HA:`, error.message);
+    console.error(`[ERROR] Failed to push item to HA:`, error.message);
     throw error;
   }
 }
@@ -292,7 +292,7 @@ export async function createItemInHA(item) {
       description: item.description
     });
 
-    console.log(`✅ Created item in HA: ${item.title}`);
+    console.log(`[OK] Created item in HA: ${item.title}`);
 
     // Update local DB with HA item ID
     // HA returns the item UID in the response
@@ -302,7 +302,7 @@ export async function createItemInHA(item) {
         .run(haItemId, item.id);
     }
   } catch (error) {
-    console.error(`❌ Failed to create item in HA:`, error.message);
+    console.error(`[ERROR] Failed to create item in HA:`, error.message);
     throw error;
   }
 }
@@ -317,7 +317,7 @@ export async function deleteItemFromHA(item) {
 
     const list = db.prepare('SELECT ha_entity_id FROM lists WHERE id = ?').get(item.list_id);
     if (!list || !item.ha_item_id) {
-      console.log('ℹ️ Item not in HA, skipping delete');
+      console.log('[INFO] Item not in HA, skipping delete');
       return;
     }
 
@@ -329,9 +329,9 @@ export async function deleteItemFromHA(item) {
       item: item.ha_item_id
     });
 
-    console.log(`✅ Deleted item from HA: ${item.title}`);
+    console.log(`[OK] Deleted item from HA: ${item.title}`);
   } catch (error) {
-    console.error(`❌ Failed to delete item from HA:`, error.message);
+    console.error(`[ERROR] Failed to delete item from HA:`, error.message);
     throw error;
   }
 }
@@ -357,10 +357,10 @@ export async function getHAPersons() {
         state: state.state
       }));
 
-    console.log(`📡 Found ${persons.length} HA persons`);
+    console.log(`[INFO] Found ${persons.length} HA persons`);
     return persons;
   } catch (error) {
-    console.error('❌ Failed to fetch HA persons:', error.message);
+    console.error('[ERROR] Failed to fetch HA persons:', error.message);
     throw error;
   }
 }
@@ -388,10 +388,10 @@ export async function getHAZones() {
         radius: state.attributes.radius
       }));
 
-    console.log(`📡 Found ${zones.length} HA zones`);
+    console.log(`[INFO] Found ${zones.length} HA zones`);
     return zones;
   } catch (error) {
-    console.error('❌ Failed to fetch HA zones:', error.message);
+    console.error('[ERROR] Failed to fetch HA zones:', error.message);
     throw error;
   }
 }
@@ -415,7 +415,7 @@ export async function getPersonLocation(personEntityId) {
       last_updated: person.last_updated
     };
   } catch (error) {
-    console.error(`❌ Failed to fetch location for ${personEntityId}:`, error.message);
+    console.error(`[ERROR] Failed to fetch location for ${personEntityId}:`, error.message);
     throw error;
   }
 }

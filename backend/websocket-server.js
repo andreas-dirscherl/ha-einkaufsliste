@@ -44,7 +44,7 @@ export function initWebSocketServer(server) {
                 userConnections.set(userId, new Set());
               }
               userConnections.get(userId).add(ws);
-              console.log(`✅ User ${userId} authenticated via WebSocket`);
+              console.log(`[OK] User ${userId} authenticated via WebSocket`);
             });
             break;
 
@@ -147,7 +147,7 @@ function handleSubscribe(ws, message, connectedLists, userId) {
     message: `Subscribed to list ${listId}`
   }));
 
-  console.log(`👁️ User ${userId} subscribed to list ${listId}`);
+  console.log(`[WATCH] User ${userId} subscribed to list ${listId}`);
 }
 
 /**

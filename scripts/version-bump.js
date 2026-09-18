@@ -76,7 +76,7 @@ function bumpVersion(type = 'patch') {
   pkg.version = newVersion;
   
   savePackageJson(pkg);
-  console.log(`✅ Version bumped to: ${newVersion}`);
+  console.log(`[OK] Version bumped to: ${newVersion}`);
   
   return newVersion;
 }

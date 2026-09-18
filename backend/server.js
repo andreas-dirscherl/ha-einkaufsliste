@@ -151,9 +151,9 @@ app.post('/api/setup/init', async (req, res) => {
     // Sync HA lists immediately
     try {
       const count = await syncHALists();
-      console.log(`✅ Synced ${count} lists from Home Assistant`);
+      console.log(`[OK] Synced ${count} lists from Home Assistant`);
     } catch (error) {
-      console.error('⚠️ Failed to sync HA lists:', error.message);
+      console.error('[ERROR] Failed to sync HA lists:', error.message);
       // Don't fail setup, but warn admin
     }
 
@@ -413,7 +413,7 @@ app.patch('/api/users/:userId/ha-person', verifyToken, requireAdmin, (req, res) 
     const updated = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, created_at FROM users WHERE id = ?')
       .get(req.params.userId);
 
-    console.log(`✅ Mapped user ${user.username} to HA person ${ha_person_entity_id}`);
+    console.log(`[OK] Mapped user ${user.username} to HA person ${ha_person_entity_id}`);
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -502,7 +502,7 @@ app.patch('/api/lists/:listId/zones', verifyToken, requireAdmin, (req, res) => {
       insert.run(req.params.listId, zone.zone_entity_id, zone.zone_name);
     }
 
-    console.log(`✅ Updated zones for list ${list.name}: ${zones.map(z => z.zone_name).join(', ')}`);
+    console.log(`[OK] Updated zones for list ${list.name}: ${zones.map(z => z.zone_name).join(', ')}`);
 
     // Broadcast to subscribers
     broadcastToList(req.params.listId, {
@@ -935,7 +935,7 @@ app.get('/api/user/recommended-list', verifyToken, async (req, res) => {
       const list = db.prepare('SELECT id, name, description, category, icon, color FROM lists WHERE id = ?')
         .get(zonesWithLists.id);
 
-      console.log(`✅ Recommended list for ${user.username} in zone ${location.current_zone}: ${list.name}`);
+      console.log(`[OK] Recommended list for ${user.username} in zone ${location.current_zone}: ${list.name}`);
 
       res.json({
         recommendedList: list,
@@ -944,7 +944,7 @@ app.get('/api/user/recommended-list', verifyToken, async (req, res) => {
       });
     } catch (haError) {
       // If HA is unreachable, return null
-      console.warn('ℹ️ Could not fetch location from HA:', haError.message);
+      console.warn('[INFO] Could not fetch location from HA:', haError.message);
       res.json({ recommendedList: null, reason: 'HA unreachable', error: haError.message });
     }
   } catch (error) {
