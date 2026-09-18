@@ -26,6 +26,9 @@ export function initializeDatabase() {
     
     try {
       const dir = path.dirname(candidate);
+      console.log(`[ATTEMPT] Trying database path: ${candidate}`);
+      
+      // Ensure directory exists
       fs.mkdirSync(dir, { recursive: true });
       
       // Try to open the database
@@ -34,13 +37,15 @@ export function initializeDatabase() {
       console.log(`[OK] Database opened successfully at: ${DB_PATH}`);
       break;
     } catch (err) {
-      console.warn(`[WARN] Failed to open database at ${candidate}: ${err.message}`);
+      console.warn(`[WARN] Failed to open database at ${candidate}: ${err.code || err.message}`);
       db = null;
     }
   }
 
   if (!db || !DB_PATH) {
-    throw new Error(`Failed to open database at any candidate path: ${DB_CANDIDATES.join(', ')}`);
+    const errorMsg = `Failed to open database at any candidate path: ${DB_CANDIDATES.join(', ')}`;
+    console.error(`[ERROR] ${errorMsg}`);
+    throw new Error(errorMsg);
   }
 
   // Use TRUNCATE journal mode for better compatibility
