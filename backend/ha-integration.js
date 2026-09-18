@@ -261,6 +261,90 @@ export async function deleteItemFromHA(item) {
   }
 }
 
+/**
+ * Fetch all person entities from Home Assistant
+ */
+export async function getHAPersons() {
+  try {
+    const client = getHAClient();
+
+    // Fetch all states from HA
+    const response = await client.get('/api/states');
+    const states = response.data;
+
+    // Filter only person entities
+    const persons = states
+      .filter(state => state.entity_id.startsWith('person.'))
+      .map(state => ({
+        entity_id: state.entity_id,
+        friendly_name: state.attributes.friendly_name || state.entity_id,
+        icon: state.attributes.icon || 'mdi:account',
+        state: state.state
+      }));
+
+    console.log(`📡 Found ${persons.length} HA persons`);
+    return persons;
+  } catch (error) {
+    console.error('❌ Failed to fetch HA persons:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Fetch all zone entities from Home Assistant
+ */
+export async function getHAZones() {
+  try {
+    const client = getHAClient();
+
+    // Fetch all states from HA
+    const response = await client.get('/api/states');
+    const states = response.data;
+
+    // Filter only zone entities
+    const zones = states
+      .filter(state => state.entity_id.startsWith('zone.'))
+      .map(state => ({
+        entity_id: state.entity_id,
+        friendly_name: state.attributes.friendly_name || state.entity_id,
+        icon: state.attributes.icon || 'mdi:map-marker',
+        latitude: state.attributes.latitude,
+        longitude: state.attributes.longitude,
+        radius: state.attributes.radius
+      }));
+
+    console.log(`📡 Found ${zones.length} HA zones`);
+    return zones;
+  } catch (error) {
+    console.error('❌ Failed to fetch HA zones:', error.message);
+    throw error;
+  }
+}
+
+/**
+ * Get current zone/location of a person entity
+ */
+export async function getPersonLocation(personEntityId) {
+  try {
+    const client = getHAClient();
+
+    // Get person state
+    const response = await client.get(`/api/states/${personEntityId}`);
+    const person = response.data;
+
+    // The state should be the zone entity_id or 'unknown'
+    return {
+      person_entity_id: personEntityId,
+      current_zone: person.state, // e.g., 'zone.home' or 'zone.dm_markt'
+      friendly_name: person.attributes.friendly_name || personEntityId,
+      last_updated: person.last_updated
+    };
+  } catch (error) {
+    console.error(`❌ Failed to fetch location for ${personEntityId}:`, error.message);
+    throw error;
+  }
+}
+
 export default {
   initHAConnection,
   getHAClient,
@@ -268,5 +352,9 @@ export default {
   syncHAListItems,
   pushItemToHA,
   createItemInHA,
+  deleteItemFromHA,
+  getHAPersons,
+  getHAZones,
+  getPersonLocation
   deleteItemFromHA
 };

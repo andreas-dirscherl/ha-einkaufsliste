@@ -29,10 +29,11 @@
     <div class="flex-1 max-w-7xl mx-auto w-full">
       <!-- Tabs -->
       <div class="bg-white border-b border-gray-200 mt-6 rounded-t-lg">
-        <div class="flex gap-4 px-6 py-4">
-          <button class="tab-btn active px-4 py-2 rounded transition" data-tab="users">👥 Benutzer</button>
-          <button class="tab-btn px-4 py-2 rounded transition" data-tab="lists">📋 Listen & Berechtigungen</button>
-          <button class="tab-btn px-4 py-2 rounded transition" data-tab="sync">🔄 HA Synchronisation</button>
+        <div class="flex gap-4 px-6 py-4 overflow-x-auto">
+          <button class="tab-btn active px-4 py-2 rounded transition whitespace-nowrap" data-tab="users">👥 Benutzer</button>
+          <button class="tab-btn px-4 py-2 rounded transition whitespace-nowrap" data-tab="lists">📋 Listen & Berechtigungen</button>
+          <button class="tab-btn px-4 py-2 rounded transition whitespace-nowrap" data-tab="zones">🗺️ Zonen-Mapping</button>
+          <button class="tab-btn px-4 py-2 rounded transition whitespace-nowrap" data-tab="sync">🔄 HA Synchronisation</button>
         </div>
       </div>
 
@@ -125,6 +126,76 @@
             </thead>
             <tbody id="permissionsList" class="divide-y"></tbody>
           </table>
+        </div>
+
+        <!-- ZONES TAB -->
+        <div id="zones" class="tab-content">
+          <h2 class="text-xl font-semibold mb-6">🗺️ Zonen-Mapping</h2>
+
+          <!-- User-Person Mapping Section -->
+          <div class="mb-8">
+            <h3 class="text-lg font-semibold mb-4">Benutzer zu Home Assistant Personen zuordnen</h3>
+            <div class="grid gap-4">
+              <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p class="text-sm text-gray-600 mb-3">
+                  Hier können Sie Benutzer mit Home Assistant Personen-Entitäten verbinden, um standortbasierte Listen-Vorschläge zu aktivieren.
+                </p>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <select id="userSelect" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                    <option value="">Benutzer wählen...</option>
+                  </select>
+                  <select id="personSelect" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                    <option value="">HA-Person wählen...</option>
+                  </select>
+                  <button id="mapUserBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
+                    🔗 Zuordnen
+                  </button>
+                </div>
+                <div id="userMapMessage" class="mt-3 hidden p-2 rounded text-sm"></div>
+              </div>
+            </div>
+
+            <table class="w-full text-sm mt-4">
+              <thead class="bg-gray-100 border-b-2 border-gray-300">
+                <tr>
+                  <th class="text-left px-4 py-2">Benutzername</th>
+                  <th class="text-left px-4 py-2">HA-Person Entity</th>
+                  <th class="text-left px-4 py-2">Status</th>
+                  <th class="text-center px-4 py-2">Aktionen</th>
+                </tr>
+              </thead>
+              <tbody id="userPersonList" class="divide-y"></tbody>
+            </table>
+          </div>
+
+          <!-- List-Zone Mapping Section -->
+          <div class="mt-8">
+            <h3 class="text-lg font-semibold mb-4">Listen mit Zonen verknüpfen</h3>
+            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
+              <p class="text-sm text-gray-600 mb-3">
+                Wählen Sie eine Liste und ordnen Sie die Zonen/Orte zu, in denen diese Liste relevant ist.
+              </p>
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                <select id="listSelect" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                  <option value="">Liste wählen...</option>
+                </select>
+                <div class="flex gap-2">
+                  <select id="zoneSelect" class="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
+                    <option value="">Zone wählen...</option>
+                  </select>
+                  <button id="addZoneBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 whitespace-nowrap">
+                    ➕ Hinzufügen
+                  </button>
+                </div>
+              </div>
+              <div id="zoneMessage" class="p-2 rounded text-sm hidden"></div>
+            </div>
+
+            <div id="selectedListInfo" class="hidden mb-4 p-3 bg-gray-50 border border-gray-200 rounded">
+              <h4 class="font-semibold mb-2">Zonenverbindungen für: <span id="selectedListName"></span></h4>
+              <div id="listZonesList" class="space-y-2"></div>
+            </div>
+          </div>
         </div>
 
         <!-- SYNC TAB -->
@@ -398,11 +469,202 @@
       }
     }
 
+    // ============ ZONES TAB ============
+
+    async function loadZoneMappings() {
+      // Load users for dropdown
+      const users = await apiCall('GET', '/api/admin/users');
+      const userSelect = document.getElementById('userSelect');
+      userSelect.innerHTML = '<option value="">Benutzer wählen...</option>';
+      users.forEach(user => {
+        const opt = document.createElement('option');
+        opt.value = user.id;
+        opt.textContent = user.username;
+        userSelect.appendChild(opt);
+      });
+
+      // Load HA persons
+      try {
+        const persons = await apiCall('GET', '/api/setup/ha-persons');
+        const personSelect = document.getElementById('personSelect');
+        personSelect.innerHTML = '<option value="">HA-Person wählen...</option>';
+        persons.forEach(person => {
+          const opt = document.createElement('option');
+          opt.value = person.entity_id;
+          opt.textContent = `${person.friendly_name} (${person.entity_id})`;
+          personSelect.appendChild(opt);
+        });
+      } catch (e) {
+        console.warn('Failed to load HA persons:', e);
+      }
+
+      // Load user-person mappings
+      const userPersonList = document.getElementById('userPersonList');
+      userPersonList.innerHTML = '';
+      for (const user of users) {
+        const tr = document.createElement('tr');
+        const hasMapping = user.ha_person_entity_id ? '✅' : '❌';
+        const personName = user.ha_person_entity_id || 'Nicht zugeordnet';
+        
+        tr.innerHTML = `
+          <td class="px-4 py-2">${user.username}</td>
+          <td class="px-4 py-2 font-mono text-xs">${personName}</td>
+          <td class="px-4 py-2">${hasMapping}</td>
+          <td class="px-4 py-2 text-center">
+            <button class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200" 
+                    onclick="removeUserMapping(${user.id})">
+              🗑️ Entfernen
+            </button>
+          </td>
+        `;
+        userPersonList.appendChild(tr);
+      }
+
+      // Load lists for zone mapping
+      const lists = await apiCall('GET', '/api/lists');
+      const listSelect = document.getElementById('listSelect');
+      listSelect.innerHTML = '<option value="">Liste wählen...</option>';
+      lists.forEach(list => {
+        const opt = document.createElement('option');
+        opt.value = list.id;
+        opt.textContent = list.name;
+        listSelect.appendChild(opt);
+      });
+
+      // Load HA zones
+      try {
+        const zones = await apiCall('GET', '/api/setup/ha-zones');
+        const zoneSelect = document.getElementById('zoneSelect');
+        zoneSelect.innerHTML = '<option value="">Zone wählen...</option>';
+        zones.forEach(zone => {
+          const opt = document.createElement('option');
+          opt.value = zone.entity_id;
+          opt.textContent = `${zone.friendly_name} (${zone.entity_id})`;
+          zoneSelect.appendChild(opt);
+        });
+      } catch (e) {
+        console.warn('Failed to load HA zones:', e);
+      }
+    }
+
+    document.getElementById('mapUserBtn').addEventListener('click', async () => {
+      const userId = document.getElementById('userSelect').value;
+      const personId = document.getElementById('personSelect').value;
+
+      if (!userId || !personId) {
+        showMessage('userMapMessage', '❌ Bitte wählen Sie Benutzer und Person', 'error');
+        return;
+      }
+
+      const result = await apiCall('PATCH', `/api/users/${userId}/ha-person`, {
+        ha_person_entity_id: personId
+      });
+
+      if (result.error) {
+        showMessage('userMapMessage', `❌ ${result.error}`, 'error');
+      } else {
+        showMessage('userMapMessage', `✅ Benutzer ${result.username} zugeordnet zu ${personId}`);
+        loadZoneMappings();
+      }
+    });
+
+    async function removeUserMapping(userId) {
+      if (!confirm('Zuordnung entfernen?')) return;
+      const result = await apiCall('PATCH', `/api/users/${userId}/ha-person`, {
+        ha_person_entity_id: null
+      });
+      loadZoneMappings();
+    }
+
+    document.getElementById('listSelect').addEventListener('change', async (e) => {
+      const listId = e.target.value;
+      if (!listId) {
+        document.getElementById('selectedListInfo').classList.add('hidden');
+        return;
+      }
+
+      const list = await apiCall('GET', `/api/lists/${listId}`);
+      document.getElementById('selectedListName').textContent = list.name;
+
+      const zones = await apiCall('GET', `/api/lists/${listId}/zones`);
+      const zonesList = document.getElementById('listZonesList');
+      zonesList.innerHTML = '';
+
+      if (zones.length === 0) {
+        zonesList.innerHTML = '<p class="text-gray-500 text-sm">Keine Zonen zugeordnet</p>';
+      } else {
+        zones.forEach(zone => {
+          const div = document.createElement('div');
+          div.className = 'flex items-center justify-between p-2 bg-white border border-gray-200 rounded';
+          div.innerHTML = `
+            <span>${zone.zone_name} <span class="text-xs text-gray-500">(${zone.zone_entity_id})</span></span>
+            <button class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200" 
+                    onclick="removeZoneMapping(${zone.id}, ${listId})">
+              🗑️ Entfernen
+            </button>
+          `;
+          zonesList.appendChild(div);
+        });
+      }
+
+      document.getElementById('selectedListInfo').classList.remove('hidden');
+    });
+
+    document.getElementById('addZoneBtn').addEventListener('click', async () => {
+      const listId = document.getElementById('listSelect').value;
+      const zoneId = document.getElementById('zoneSelect').value;
+
+      if (!listId || !zoneId) {
+        showMessage('zoneMessage', '❌ Bitte wählen Sie Liste und Zone', 'error');
+        return;
+      }
+
+      // Get zone name from select
+      const zoneSelect = document.getElementById('zoneSelect');
+      const zoneName = zoneSelect.options[zoneSelect.selectedIndex].text.split('(')[0].trim();
+
+      // Get existing zones
+      const existingZones = await apiCall('GET', `/api/lists/${listId}/zones`);
+      
+      // Check if already mapped
+      if (existingZones.some(z => z.zone_entity_id === zoneId)) {
+        showMessage('zoneMessage', '⚠️ Diese Zone ist bereits zugeordnet', 'error');
+        return;
+      }
+
+      // Add new zone
+      const allZones = [...existingZones.map(z => ({ zone_entity_id: z.zone_entity_id, zone_name: z.zone_name }))];
+      allZones.push({ zone_entity_id: zoneId, zone_name: zoneName });
+
+      const result = await apiCall('PATCH', `/api/lists/${listId}/zones`, { zones: allZones });
+
+      if (result.error) {
+        showMessage('zoneMessage', `❌ ${result.error}`, 'error');
+      } else {
+        showMessage('zoneMessage', `✅ Zone ${zoneName} zugeordnet`);
+        document.getElementById('listSelect').dispatchEvent(new Event('change'));
+      }
+    });
+
+    async function removeZoneMapping(zoneId, listId) {
+      if (!confirm('Zone-Zuordnung entfernen?')) return;
+
+      const zones = await apiCall('GET', `/api/lists/${listId}/zones`);
+      const updated = zones.filter(z => z.id !== zoneId);
+
+      await apiCall('PATCH', `/api/lists/${listId}/zones`, { 
+        zones: updated.map(z => ({ zone_entity_id: z.zone_entity_id, zone_name: z.zone_name })) 
+      });
+
+      document.getElementById('listSelect').dispatchEvent(new Event('change'));
+    }
+
     // Init
     loadUsers();
     loadPermissions();
     loadUsersAndLists();
     loadListsForSync();
+    loadZoneMappings();
   </script>
 </body>
 </html>

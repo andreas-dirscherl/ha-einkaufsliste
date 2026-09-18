@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import crypto from 'crypto';
+import fs from 'fs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'app.db');
@@ -14,8 +15,8 @@ let db = null;
 export function initializeDatabase() {
   // Ensure data directory exists
   const dataDir = path.dirname(DB_PATH);
-  if (!require('fs').existsSync(dataDir)) {
-    require('fs').mkdirSync(dataDir, { recursive: true });
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
   }
 
   db = new Database(DB_PATH);
@@ -24,6 +25,9 @@ export function initializeDatabase() {
 
   // Create tables if they don't exist
   createTables();
+  
+  // Apply schema migrations
+  applyMigrations();
   
   return db;
 }
@@ -76,6 +80,9 @@ function createTables() {
       ha_entity_id TEXT UNIQUE NOT NULL,
       name TEXT NOT NULL,
       description TEXT,
+      category TEXT,
+      icon TEXT,
+      color TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -105,6 +112,7 @@ function createTables() {
       title TEXT NOT NULL,
       description TEXT,
       is_completed BOOLEAN DEFAULT 0,
+      version INTEGER DEFAULT 0,
       ha_synced_at DATETIME,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -128,12 +136,62 @@ function createTables() {
     )
   `);
 
+  // Notifications (for UI alerts and push notifications)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      title TEXT NOT NULL,
+      message TEXT,
+      data JSON,
+      type TEXT DEFAULT 'info',
+      read BOOLEAN DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    )
+  `);
+
   // Create indices for performance
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_items_list_id ON items(list_id);
     CREATE INDEX IF NOT EXISTS idx_items_title ON items(title);
     CREATE INDEX IF NOT EXISTS idx_list_permissions_user_id ON list_permissions(user_id);
     CREATE INDEX IF NOT EXISTS idx_sync_queue_synced ON sync_queue(synced);
+    CREATE INDEX IF NOT EXISTS idx_notifications_user_id ON notifications(user_id);
+    CREATE INDEX IF NOT EXISTS idx_notifications_read ON notifications(read);
+  `);
+}
+
+/**
+ * Apply database schema migrations
+ */
+function applyMigrations() {
+  const db = getDatabase();
+
+  // Migration 1: Add HA person entity mapping to users
+  try {
+    db.prepare('ALTER TABLE users ADD COLUMN ha_person_entity_id TEXT').run();
+  } catch (e) {
+    // Column already exists, skip
+  }
+
+  // Migration 2: Create zone_mappings table for area-based list associations
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS zone_mappings (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      list_id INTEGER NOT NULL,
+      zone_entity_id TEXT NOT NULL,
+      zone_name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (list_id) REFERENCES lists(id) ON DELETE CASCADE,
+      UNIQUE(list_id, zone_entity_id)
+    )
+  `);
+
+  // Create indices for zone mappings
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_zone_mappings_list_id ON zone_mappings(list_id);
+    CREATE INDEX IF NOT EXISTS idx_zone_mappings_zone_entity ON zone_mappings(zone_entity_id);
   `);
 }
 

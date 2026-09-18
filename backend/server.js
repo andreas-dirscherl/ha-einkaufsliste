@@ -5,6 +5,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import jwt from 'jsonwebtoken';
 import bcryptjs from 'bcryptjs';
+import http from 'http';
 import {
   initializeDatabase,
   getDatabase,
@@ -19,8 +20,18 @@ import {
   syncHAListItems,
   pushItemToHA,
   createItemInHA,
-  deleteItemFromHA
+  deleteItemFromHA,
+  getHAPersons,
+  getHAZones,
+  getPersonLocation
 } from './ha-integration.js';
+import {
+  initWebSocketServer,
+  broadcastToList,
+  broadcastToUser
+} from './websocket-server.js';
+import { SyncManager, NotificationManager } from './sync-manager.js';
+import { getCategory, getAllCategories } from './categories.js';
 
 dotenv.config();
 
@@ -28,6 +39,9 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// Create HTTP server for WebSocket
+const server = http.createServer(app);
 
 // Middleware
 app.use(cors());
@@ -157,6 +171,40 @@ app.post('/api/setup/init', async (req, res) => {
     });
   } catch (error) {
     console.error('Setup error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * HOME ASSISTANT RESOURCES ROUTES (for setup & admin)
+ */
+
+// GET /api/setup/ha-persons - Get available HA person entities
+app.get('/api/setup/ha-persons', async (req, res) => {
+  try {
+    if (!isSetupComplete()) {
+      return res.status(403).json({ error: 'Setup not complete' });
+    }
+
+    const persons = await getHAPersons();
+    res.json(persons);
+  } catch (error) {
+    console.error('Failed to fetch HA persons:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/setup/ha-zones - Get available HA zone entities
+app.get('/api/setup/ha-zones', async (req, res) => {
+  try {
+    if (!isSetupComplete()) {
+      return res.status(403).json({ error: 'Setup not complete' });
+    }
+
+    const zones = await getHAZones();
+    res.json(zones);
+  } catch (error) {
+    console.error('Failed to fetch HA zones:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -339,6 +387,137 @@ app.delete('/api/admin/permissions/:permissionId', verifyToken, requireAdmin, (r
 });
 
 /**
+ * USER-PERSON MAPPING ROUTES
+ */
+
+// PATCH /api/users/:userId/ha-person - Map app user to HA person entity
+app.patch('/api/users/:userId/ha-person', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const { ha_person_entity_id } = req.body;
+    const db = getDatabase();
+
+    if (!ha_person_entity_id) {
+      return res.status(400).json({ error: 'ha_person_entity_id required' });
+    }
+
+    // Verify user exists
+    const user = db.prepare('SELECT * FROM users WHERE id = ?').get(req.params.userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    // Update user with HA person mapping
+    db.prepare('UPDATE users SET ha_person_entity_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(ha_person_entity_id, req.params.userId);
+
+    const updated = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, created_at FROM users WHERE id = ?')
+      .get(req.params.userId);
+
+    console.log(`✅ Mapped user ${user.username} to HA person ${ha_person_entity_id}`);
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/users/:userId - Get user details including HA person mapping
+app.get('/api/users/:userId', verifyToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+    
+    // User can only view their own details, or admins can view any user
+    if (req.user.id !== parseInt(req.params.userId) && !req.user.isAdmin) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const user = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, created_at FROM users WHERE id = ?')
+      .get(req.params.userId);
+
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * ZONE MAPPING ROUTES
+ */
+
+// GET /api/lists/:listId/zones - Get zones associated with a list
+app.get('/api/lists/:listId/zones', verifyToken, (req, res) => {
+  try {
+    const db = getDatabase();
+    
+    // Check access to list
+    const permission = db.prepare('SELECT * FROM list_permissions WHERE user_id = ? AND list_id = ?')
+      .get(req.user.id, req.params.listId);
+
+    if (!permission && !req.user.isAdmin) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    const zones = db.prepare(`
+      SELECT id, zone_entity_id, zone_name, created_at
+      FROM zone_mappings
+      WHERE list_id = ?
+      ORDER BY zone_name ASC
+    `).all(req.params.listId);
+
+    res.json(zones);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH /api/lists/:listId/zones - Set zones for a list (admin only)
+app.patch('/api/lists/:listId/zones', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const { zones } = req.body; // Array of { zone_entity_id, zone_name }
+    const db = getDatabase();
+
+    // Verify list exists
+    const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(req.params.listId);
+    if (!list) {
+      return res.status(404).json({ error: 'List not found' });
+    }
+
+    if (!Array.isArray(zones)) {
+      return res.status(400).json({ error: 'zones must be an array' });
+    }
+
+    // Clear existing zone mappings for this list
+    db.prepare('DELETE FROM zone_mappings WHERE list_id = ?').run(req.params.listId);
+
+    // Insert new zone mappings
+    const insert = db.prepare(`
+      INSERT INTO zone_mappings (list_id, zone_entity_id, zone_name)
+      VALUES (?, ?, ?)
+    `);
+
+    for (const zone of zones) {
+      insert.run(req.params.listId, zone.zone_entity_id, zone.zone_name);
+    }
+
+    console.log(`✅ Updated zones for list ${list.name}: ${zones.map(z => z.zone_name).join(', ')}`);
+
+    // Broadcast to subscribers
+    broadcastToList(req.params.listId, {
+      type: 'list-updated',
+      list: db.prepare('SELECT * FROM lists WHERE id = ?').get(req.params.listId)
+    });
+
+    const updatedZones = db.prepare('SELECT * FROM zone_mappings WHERE list_id = ?').all(req.params.listId);
+    res.json(updatedZones);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
  * HA SYNC ROUTES
  */
 
@@ -475,6 +654,13 @@ app.post('/api/lists/:listId/items', verifyToken, async (req, res) => {
       // Item still created locally, will retry on sync
     }
 
+    // Broadcast to all users on this list (real-time sync)
+    broadcastToList(req.params.listId, {
+      type: 'item-created',
+      item,
+      userId: req.user.id
+    });
+
     res.status(201).json(item);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -516,6 +702,13 @@ app.patch('/api/items/:itemId', verifyToken, async (req, res) => {
       // Item still updated locally
     }
 
+    // Broadcast to all users on this list (real-time sync)
+    broadcastToList(updated.list_id, {
+      type: 'item-updated',
+      item: updated,
+      userId: req.user.id
+    });
+
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -552,7 +745,208 @@ app.delete('/api/items/:itemId', verifyToken, async (req, res) => {
       console.warn('Failed to delete from HA:', haError.message);
     }
 
+    // Broadcast to all users on this list (real-time sync)
+    broadcastToList(item.list_id, {
+      type: 'item-deleted',
+      itemId: req.params.itemId,
+      userId: req.user.id
+    });
+
     res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * CATEGORIES ROUTES
+ */
+
+// GET /api/categories - Get all available categories
+app.get('/api/categories', (req, res) => {
+  try {
+    res.json(getAllCategories());
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// PATCH /api/admin/lists/:listId - Update list (category, icon, color)
+app.patch('/api/admin/lists/:listId', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const { category, icon, color, name, description } = req.body;
+    const db = getDatabase();
+
+    const list = db.prepare('SELECT * FROM lists WHERE id = ?').get(req.params.listId);
+    if (!list) {
+      return res.status(404).json({ error: 'List not found' });
+    }
+
+    db.prepare(`
+      UPDATE lists
+      SET 
+        category = COALESCE(?, category),
+        icon = COALESCE(?, icon),
+        color = COALESCE(?, color),
+        name = COALESCE(?, name),
+        description = COALESCE(?, description),
+        updated_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(category, icon, color, name, description, req.params.listId);
+
+    const updated = db.prepare('SELECT * FROM lists WHERE id = ?').get(req.params.listId);
+
+    // Broadcast to all users on this list
+    broadcastToList(req.params.listId, {
+      type: 'list-updated',
+      list: updated
+    });
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * NOTIFICATIONS ROUTES
+ */
+
+// GET /api/notifications - Get user's notifications
+app.get('/api/notifications', verifyToken, (req, res) => {
+  try {
+    const db = getDatabase();
+    const limit = parseInt(req.query.limit) || 20;
+    const notifications = NotificationManager.getNotifications(db, req.user.id, limit);
+    
+    res.json(notifications);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/notifications/summary - Get notification count
+app.get('/api/notifications/summary', verifyToken, (req, res) => {
+  try {
+    const db = getDatabase();
+    const summary = NotificationManager.getNotificationSummary(db, req.user.id);
+    res.json(summary);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /api/notifications/:id/read - Mark notification as read
+app.post('/api/notifications/:id/read', verifyToken, (req, res) => {
+  try {
+    const db = getDatabase();
+    
+    // Verify ownership
+    const notif = db.prepare('SELECT * FROM notifications WHERE id = ?').get(req.params.id);
+    if (!notif || notif.user_id !== req.user.id) {
+      return res.status(403).json({ error: 'Access denied' });
+    }
+
+    NotificationManager.markAsRead(db, req.params.id);
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * USER LOCATION & ZONE DETECTION ROUTES
+ */
+
+// GET /api/user/current-zone - Get current HA zone for logged-in user
+app.get('/api/user/current-zone', verifyToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+
+    // Get user details including HA person entity
+    const user = db.prepare('SELECT id, username, ha_person_entity_id FROM users WHERE id = ?')
+      .get(req.user.id);
+
+    if (!user || !user.ha_person_entity_id) {
+      return res.status(400).json({ error: 'User has no HA person entity mapped' });
+    }
+
+    // Get current location from HA
+    const location = await getPersonLocation(user.ha_person_entity_id);
+
+    res.json(location);
+  } catch (error) {
+    console.error('Failed to get user location:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/user/recommended-list - Get list recommended based on current zone
+app.get('/api/user/recommended-list', verifyToken, async (req, res) => {
+  try {
+    const db = getDatabase();
+
+    // Get user details including HA person entity
+    const user = db.prepare('SELECT id, username, ha_person_entity_id FROM users WHERE id = ?')
+      .get(req.user.id);
+
+    if (!user || !user.ha_person_entity_id) {
+      return res.json({ recommendedList: null, reason: 'User has no HA person entity mapped' });
+    }
+
+    try {
+      // Get current location from HA
+      const location = await getPersonLocation(user.ha_person_entity_id);
+
+      if (location.current_zone === 'unknown' || !location.current_zone) {
+        return res.json({ recommendedList: null, reason: 'User location unknown', zone: location.current_zone });
+      }
+
+      // Find lists that are associated with this zone
+      const zonesWithLists = db.prepare(`
+        SELECT l.* 
+        FROM lists l
+        JOIN zone_mappings zm ON l.id = zm.list_id
+        WHERE zm.zone_entity_id = ?
+        LIMIT 1
+      `).get(location.current_zone);
+
+      if (!zonesWithLists) {
+        return res.json({ 
+          recommendedList: null, 
+          reason: 'No list mapped for current zone',
+          zone: location.current_zone 
+        });
+      }
+
+      // Check if user has access to this list
+      const permission = db.prepare('SELECT * FROM list_permissions WHERE user_id = ? AND list_id = ?')
+        .get(req.user.id, zonesWithLists.id);
+
+      if (!permission) {
+        return res.json({ 
+          recommendedList: null, 
+          reason: 'No access to list for current zone',
+          zone: location.current_zone 
+        });
+      }
+
+      // Return the recommended list
+      const list = db.prepare('SELECT id, name, description, category, icon, color FROM lists WHERE id = ?')
+        .get(zonesWithLists.id);
+
+      console.log(`✅ Recommended list for ${user.username} in zone ${location.current_zone}: ${list.name}`);
+
+      res.json({
+        recommendedList: list,
+        zone: location.current_zone,
+        personLocation: location.friendly_name
+      });
+    } catch (haError) {
+      // If HA is unreachable, return null
+      console.warn('ℹ️ Could not fetch location from HA:', haError.message);
+      res.json({ recommendedList: null, reason: 'HA unreachable', error: haError.message });
+    }
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -566,11 +960,14 @@ app.get('/api/health', (req, res) => {
 });
 
 /**
- * Start server
+ * Start server with WebSocket support
  */
-app.listen(PORT, () => {
+const wss = initWebSocketServer(server);
+
+server.listen(PORT, () => {
   console.log(`🛒 Shopping List Server running on http://localhost:${PORT}`);
   console.log(`📱 Open http://localhost:${PORT}/setup.html to initialize`);
+  console.log(`🔗 WebSocket ready for real-time sync`);
   
   // Initialize HA connection if setup is complete
   if (isSetupComplete()) {

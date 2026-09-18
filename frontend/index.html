@@ -98,6 +98,33 @@
     .safe-bottom {
       padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
     }
+
+    /* Zone auto-select notification */
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+    }
+
+    .animate-pulse {
+      animation: slideIn 0.3s ease-out, slideOut 4.7s ease-in 4s;
+    }
   </style>
 </head>
 <body class="bg-gray-50">
@@ -173,7 +200,8 @@
     </div>
   </div>
 
-  <script>
+  <script type="module">
+    import WebSocketClient from './websocket-client.js';
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch(err => {
@@ -185,6 +213,7 @@
     let currentList = null;
     let isOnline = navigator.onLine;
     let token = localStorage.getItem('token');
+    let wsClient = null; // WebSocket client for real-time sync
 
     const app = {
       $: (id) => document.getElementById(id),
@@ -206,6 +235,49 @@
     // Show admin section if user is admin
     if (user?.isAdmin) {
       document.getElementById('adminSection').classList.remove('hidden');
+    }
+
+    // Initialize WebSocket for real-time sync
+    async function initWebSocket() {
+      if (wsClient) return;
+      wsClient = new WebSocketClient(token, user?.id);
+      
+      try {
+        await wsClient.connect();
+
+        // Listen for item changes
+        wsClient.on('item-change', handleWebSocketItemChange);
+        wsClient.on('disconnected', () => {
+          console.log('WebSocket disconnected, app still works offline');
+        });
+      } catch (error) {
+        console.warn('WebSocket connection failed, using polling mode:', error);
+        // App still works, just without real-time sync
+      }
+    }
+
+    // Handle incoming WebSocket item changes
+    function handleWebSocketItemChange(changeData) {
+      // Only process if we're viewing the affected list
+      if (changeData.listId !== currentList) return;
+
+      // Don't process our own changes (avoid duplicate)
+      if (changeData.userId === user?.id) return;
+
+      // Update UI based on action
+      switch (changeData.type) {
+        case 'item-created':
+          addItemToUI(changeData.item);
+          break;
+        case 'item-updated':
+          updateItemInUI(changeData.item);
+          break;
+        case 'item-deleted':
+          removeItemFromUI(changeData.itemId);
+          break;
+      }
+
+      console.log(`🔄 Real-time update from user ${changeData.userId}:`, changeData.type);
     }
 
     // API calls
@@ -250,11 +322,61 @@
       });
     }
 
+    // Auto-load recommended list based on current zone
+    async function autoSelectRecommendedList() {
+      try {
+        const result = await apiCall('GET', '/api/user/recommended-list');
+        
+        if (result.error) {
+          console.log('ℹ️ No recommended list:', result.error);
+          return;
+        }
+
+        if (result.recommendedList) {
+          console.log(`📍 Auto-selecting list: ${result.recommendedList.name} (zone: ${result.zone})`);
+          
+          // Auto-select the list
+          const selector = app.$('listSelector');
+          selector.value = result.recommendedList.id;
+          
+          // Trigger change event
+          selector.dispatchEvent(new Event('change'));
+
+          // Show info notification (optional)
+          const infoEl = document.createElement('div');
+          infoEl.className = 'fixed top-4 right-4 p-4 bg-blue-100 text-blue-700 rounded-lg shadow-lg max-w-xs z-50 animate-pulse';
+          infoEl.innerHTML = `📍 <strong>${result.recommendedList.name}</strong> ist in Ihrer Nähe (${result.zone})`;
+          document.body.appendChild(infoEl);
+
+          // Auto-remove after 5 seconds
+          setTimeout(() => infoEl.remove(), 5000);
+        } else {
+          console.log(`ℹ️ No list for current zone: ${result.reason}`);
+        }
+      } catch (error) {
+        console.warn('Failed to auto-select list:', error);
+        // App still works, just no auto-selection
+      }
+    }
+
     // Load list items
     async function loadList(listId) {
       currentList = listId;
+      
+      // Subscribe to list for real-time updates
+      if (wsClient && wsClient.isConnected()) {
+        wsClient.subscribeToList(listId);
+      }
+
       const data = await apiCall('GET', `/api/lists/${listId}`);
       if (!data) return;
+
+      // Update header with list icon/color
+      const header = app.$('app').querySelector('header');
+      if (data.icon) {
+        header.style.borderTopColor = data.color || '#667eea';
+        header.style.borderTopWidth = '4px';
+      }
 
       const itemsList = app.$('itemsList');
       itemsList.innerHTML = '';
@@ -270,6 +392,42 @@
       app.$('emptyState').classList.add('hidden');
       app.$('listContent').classList.remove('hidden');
       app.$('itemInput').focus();
+    }
+
+    // Add item to UI (for real-time sync)
+    function addItemToUI(item) {
+      const itemsList = app.$('itemsList');
+      const itemEl = createItemElement(item);
+      
+      // Insert at top (before completed items)
+      itemsList.insertBefore(itemEl, itemsList.firstChild);
+      
+      // Trigger animation
+      itemEl.classList.add('item-enter');
+    }
+
+    // Update item in UI (for real-time sync)
+    function updateItemInUI(item) {
+      const itemEl = document.querySelector(`[data-item-id="${item.id}"]`);
+      if (itemEl) {
+        const checkbox = itemEl.querySelector('input[type="checkbox"]');
+        checkbox.checked = item.is_completed;
+        
+        if (item.is_completed) {
+          itemEl.classList.add('item-completed');
+        } else {
+          itemEl.classList.remove('item-completed');
+        }
+      }
+    }
+
+    // Remove item from UI (for real-time sync)
+    function removeItemFromUI(itemId) {
+      const itemEl = document.querySelector(`[data-item-id="${itemId}"]`);
+      if (itemEl) {
+        itemEl.classList.add('item-exit');
+        setTimeout(() => itemEl.remove(), 200);
+      }
     }
 
     // Create item element
@@ -320,12 +478,22 @@
       if (result) {
         const itemEl = createItemElement(result);
         app.$('itemsList').prepend(itemEl);
+
+        // Notify server for WebSocket broadcast
+        if (wsClient && wsClient.isConnected()) {
+          wsClient.syncItemChange(currentList, 'create', result.id, result);
+        }
       }
     }
 
     // Toggle item
     async function toggleItem(itemId, isCompleted) {
       await apiCall('PATCH', `/api/items/${itemId}`, { isCompleted });
+
+      // Notify server for WebSocket broadcast
+      if (wsClient && wsClient.isConnected()) {
+        wsClient.syncItemChange(currentList, 'update', itemId);
+      }
     }
 
     // Delete item
@@ -334,6 +502,11 @@
       setTimeout(async () => {
         await apiCall('DELETE', `/api/items/${itemId}`);
         element.remove();
+
+        // Notify server for WebSocket broadcast
+        if (wsClient && wsClient.isConnected()) {
+          wsClient.syncItemChange(currentList, 'delete', itemId);
+        }
       }, 200);
     }
 
@@ -377,7 +550,9 @@
     });
 
     // Initialize
+    initWebSocket(); // Start WebSocket connection
     loadLists();
+    autoSelectRecommendedList(); // Auto-select list based on current zone
   </script>
 </body>
 </html>
