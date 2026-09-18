@@ -8,7 +8,18 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // Use /app/data/app.db on persistent volume for production
 // Falls local development: fallback to ./app.db im Projekt-Root
-const DB_PATH = process.env.DB_PATH || '/app/data/app.db';
+let DB_PATH = process.env.DB_PATH || '/app/data/app.db';
+
+// Fallback to /app/app.db if /app/data is not writable (for development/testing)
+try {
+  // Try to ensure directory exists
+  if (typeof fs !== 'undefined' && fs.mkdirSync) {
+    fs.mkdirSync(path.dirname(DB_PATH), { recursive: true });
+  }
+} catch (err) {
+  console.warn(`[WARN] Cannot create directory for ${DB_PATH}, falling back to /app/app.db`);
+  DB_PATH = '/app/app.db';
+}
 
 console.log(`📁 Database path: ${DB_PATH}`);
 
