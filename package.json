@@ -1,13 +1,15 @@
 {
   "name": "ha-shopping-list",
-  "version": "1.0.0",
+  "version": "2026.9.0",
   "description": "Ultra-fast shopping list PWA with Home Assistant integration",
   "main": "backend/server.js",
   "type": "module",
   "scripts": {
     "start": "node backend/server.js",
     "dev": "NODE_ENV=development node backend/server.js",
-    "init-db": "node backend/init-db.js"
+    "init-db": "node backend/init-db.js",
+    "version:bump": "node scripts/version-bump.js",
+    "version:check": "node scripts/version-bump.js check"
   },
   "keywords": [
     "home-assistant",
