@@ -453,7 +453,10 @@
         <div class="data-section">
           <div class="header-row">
             <h2>Synchronisierung</h2>
-            <button id="syncAllBtn" class="btn btn-primary btn-small">Alle synchronisieren</button>
+            <div style="display: flex; gap: var(--spacing-md); flex-wrap: wrap;">
+              <button id="syncAllBtn" class="btn btn-primary btn-small">Alle synchronisieren</button>
+              <button id="cachePicturesBtn" class="btn btn-primary btn-small" style="background-color: var(--color-accent-blue);">Profilbilder laden</button>
+            </div>
           </div>
           <div id="syncStatus" style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Bereit</div>
         </div>
@@ -1573,6 +1576,41 @@
       }, 3000);
     });
 
+    // Cache profile pictures endpoint
+    $('cachePicturesBtn').addEventListener('click', async () => {
+      const btn = event.target;
+      btn.disabled = true;
+      const oldText = btn.textContent;
+      btn.textContent = 'Lädt...';
+
+      const status = $('syncStatus');
+      status.textContent = 'Profilbilder werden geladen...';
+      status.style.color = 'var(--color-info)';
+
+      const result = await apiCall('POST', '/api/admin/cache-profile-pictures');
+
+      if (result?.success) {
+        status.textContent = `Profilbilder aktualisiert! ${result.cached}/${result.total} geladen ✓`;
+        status.style.color = 'var(--color-success)';
+        
+        // Reload users to show updated pictures
+        setTimeout(() => {
+          loadUsersTable();
+        }, 500);
+      } else {
+        status.textContent = 'Fehler beim Laden der Profilbilder ✗';
+        status.style.color = 'var(--color-error)';
+      }
+
+      btn.disabled = false;
+      btn.textContent = oldText;
+
+      setTimeout(() => {
+        status.textContent = 'Bereit';
+        status.style.color = 'var(--color-gray-500)';
+      }, 3000);
+    });
+
     // ===== LIST EDITOR WITH ICON SELECTOR =====
     
     window.loadListsForEditing = async function() {
@@ -1830,8 +1868,11 @@
             ${data.map(u => {
               // Use profile picture if available, otherwise generate avatar with initials
               const avatarContent = u.profile_picture_url 
-                ? `<img src="${u.profile_picture_url}" alt="${u.username}" style="width: 100%; height: 100%; object-fit: cover;">`
+                ? `<img src="${u.profile_picture_url}" alt="${u.username.replace(/"/g, '&quot;')}" style="width: 100%; height: 100%; object-fit: cover;">`
                 : `<span style="font-weight: bold; font-size: 1rem;">${u.username.charAt(0).toUpperCase()}</span>`;
+              
+              // SECURITY: Escape username for safe inclusion in onclick handlers using JSON.stringify
+              const usernameStr = JSON.stringify(u.username);
               
               return `
               <tr>
@@ -1840,14 +1881,14 @@
                     ${avatarContent}
                   </div>
                 </td>
-                <td>${u.username}</td>
+                <td>${u.username.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
                 <td>${u.is_admin ? 'Ja' : 'Nein'}</td>
                 <td><code style="background: var(--color-gray-100); padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">${u.ha_person_entity_id || '-'}</code></td>
                 <td>${new Date(u.created_at).toLocaleDateString('de-DE')}</td>
                 <td>
                   <div class="action-buttons">
-                    <button class="icon-btn secondary" title="HA-Person" onclick="openUserPersonModal(${u.id}, '${u.username}')" style="width: 36px; height: 36px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 20px; height: 20px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></button>
-                    <button class="icon-btn primary" title="Bearbeiten" onclick="editUser(${u.id}, '${u.username}', ${u.is_admin})">${window.icons.edit}</button>
+                    <button class="icon-btn secondary" title="HA-Person" onclick="openUserPersonModal(${u.id}, ${usernameStr})" style="width: 36px; height: 36px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 20px; height: 20px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></button>
+                    <button class="icon-btn primary" title="Bearbeiten" onclick="editUser(${u.id}, ${usernameStr}, ${u.is_admin})">${window.icons.edit}</button>
                     <button class="icon-btn danger" title="Löschen" onclick="deleteUser(${u.id})">${window.icons.trash}</button>
                   </div>
                 </td>

@@ -9,6 +9,7 @@ import crypto from 'crypto';
 import speakeasy from 'speakeasy';
 import QRCode from 'qrcode';
 import http from 'http';
+import rateLimit from 'express-rate-limit';
 import {
   initializeDatabase,
   getDatabase,
@@ -44,14 +45,53 @@ dotenv.config();
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
 const PORT = process.env.PORT || 3000;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+
+// SECURITY: JWT_SECRET must be set in production
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET && process.env.NODE_ENV === 'production') {
+  console.error('FATAL: JWT_SECRET environment variable is required in production!');
+  process.exit(1);
+}
+if (!JWT_SECRET) {
+  console.warn('WARNING: Using default JWT_SECRET in development mode only!');
+}
+const FINAL_JWT_SECRET = JWT_SECRET || 'dev-secret-change-in-production';
 
 // Create HTTP server for WebSocket
 const server = http.createServer(app);
 
+// SECURITY: Restrict CORS to specific origins
+const corsOptions = {
+  origin: process.env.ALLOWED_ORIGINS ? process.env.ALLOWED_ORIGINS.split(',') : ['http://localhost:3000', 'http://localhost:5173'],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+};
+
+// Rate limiting for authentication endpoints
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts per windowMs
+  message: 'Too many login attempts, please try again later',
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path === '/api/auth/me' // Don't rate limit token refresh
+});
+
 // Middleware
-app.use(cors());
+app.use(cors(corsOptions));
 app.use(express.json());
+
+// SECURITY: Add security headers
+app.use((req, res, next) => {
+  res.setHeader('X-Content-Type-Options', 'nosniff'); // Prevent MIME sniffing
+  res.setHeader('X-Frame-Options', 'DENY'); // Prevent clickjacking
+  res.setHeader('X-XSS-Protection', '1; mode=block'); // XSS protection
+  res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains'); // HSTS
+  res.setHeader('Content-Security-Policy', "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; style-src 'self' 'unsafe-inline' https://cdn.tailwindcss.com; img-src 'self' data: https: http:; connect-src 'self' ws: wss:");
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  next();
+});
 
 // Cache control middleware - ensure sw.js and index.html are always fresh
 app.use((req, res, next) => {
@@ -101,7 +141,7 @@ function verifyToken(req, res, next) {
   }
 
   try {
-    req.user = jwt.verify(token, JWT_SECRET);
+    req.user = jwt.verify(token, FINAL_JWT_SECRET);
     
     // Auto-refresh: Create new token for rolling 30-day window
     const newToken = jwt.sign(
@@ -110,7 +150,7 @@ function verifyToken(req, res, next) {
         username: req.user.username, 
         isAdmin: req.user.isAdmin 
       },
-      JWT_SECRET,
+      FINAL_JWT_SECRET,
       { expiresIn: '30d' }
     );
     
@@ -195,7 +235,7 @@ app.post('/api/setup/init', async (req, res) => {
     // Generate JWT token
     const token = jwt.sign(
       { id: 1, username: adminUsername, isAdmin: true },
-      JWT_SECRET,
+      FINAL_JWT_SECRET,
       { expiresIn: '30d' }
     );
 
@@ -214,33 +254,26 @@ app.post('/api/setup/init', async (req, res) => {
  * HOME ASSISTANT RESOURCES ROUTES (for setup & admin)
  */
 
+// SECURITY: These endpoints require authentication after setup
 // GET /api/setup/ha-persons - Get available HA person entities
-app.get('/api/setup/ha-persons', async (req, res) => {
+app.get('/api/setup/ha-persons', verifyToken, requireAdmin, async (req, res) => {
   try {
-    if (!isSetupComplete()) {
-      return res.status(403).json({ error: 'Setup not complete' });
-    }
-
     const persons = await getHAPersons();
     res.json(persons);
   } catch (error) {
     console.error('Failed to fetch HA persons:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch persons' });
   }
 });
 
 // GET /api/setup/ha-zones - Get available HA zone entities
-app.get('/api/setup/ha-zones', async (req, res) => {
+app.get('/api/setup/ha-zones', verifyToken, requireAdmin, async (req, res) => {
   try {
-    if (!isSetupComplete()) {
-      return res.status(403).json({ error: 'Setup not complete' });
-    }
-
     const zones = await getHAZones();
     res.json(zones);
   } catch (error) {
     console.error('Failed to fetch HA zones:', error);
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch zones' });
   }
 });
 
@@ -270,7 +303,7 @@ async function handleLogin(req, res) {
       // Generate a temporary token for 2FA verification (valid for 5 minutes)
       const tempToken = jwt.sign(
         { id: user.id, username: user.username, isAdmin: user.is_admin, twoFAVerified: false },
-        JWT_SECRET,
+        FINAL_JWT_SECRET,
         { expiresIn: '5m' }
       );
       
@@ -285,7 +318,7 @@ async function handleLogin(req, res) {
     // Standard login (no 2FA)
     const token = jwt.sign(
       { id: user.id, username: user.username, isAdmin: user.is_admin },
-      JWT_SECRET,
+      FINAL_JWT_SECRET,
       { expiresIn: '30d' }
     );
 
@@ -299,8 +332,9 @@ async function handleLogin(req, res) {
   }
 }
 
-app.post('/api/auth/login', handleLogin);
-app.post('/api/login', handleLogin);
+// SECURITY: Rate limit login attempts
+app.post('/api/auth/login', loginLimiter, handleLogin);
+app.post('/api/login', loginLimiter, handleLogin);
 
 // Get current authenticated user
 app.get('/api/auth/me', verifyToken, (req, res) => {
@@ -517,14 +551,19 @@ app.patch('/api/users/:userId/ha-person', verifyToken, requireAdmin, async (req,
     // If mapping to a HA person, fetch their picture
     if (haPersonEntityId) {
       try {
-        const { getHAPersons } = await import('./ha-integration.js');
+        const { getHAPersons, downloadAndEncodeHAPicture } = await import('./ha-integration.js');
         const persons = await getHAPersons();
         const person = persons.find(p => p.entity_id === haPersonEntityId);
         
         if (person) {
           if (person.picture) {
-            profilePictureUrl = person.picture;
-            console.log(`[OK] Found profile picture for ${haPersonEntityId}: ${profilePictureUrl}`);
+            // Download and encode picture as Base64 Data URL
+            profilePictureUrl = await downloadAndEncodeHAPicture(person.picture);
+            if (profilePictureUrl) {
+              console.log(`[OK] Found and cached profile picture for ${haPersonEntityId}`);
+            } else {
+              console.log(`[WARN] Picture URL available but download failed for ${haPersonEntityId}`);
+            }
           } else {
             console.log(`[WARN] ${haPersonEntityId} (${person.friendly_name}) has NO picture in HA`);
           }
@@ -829,7 +868,7 @@ app.post('/api/2fa/verify', (req, res) => {
     // Verify the temporary token
     let decoded;
     try {
-      decoded = jwt.verify(tempToken, JWT_SECRET);
+      decoded = jwt.verify(tempToken, FINAL_JWT_SECRET);
     } catch (e) {
       return res.status(401).json({ error: '2FA verification timeout. Please login again.' });
     }
@@ -878,7 +917,7 @@ app.post('/api/2fa/verify', (req, res) => {
     // Generate actual login token
     const loginToken = jwt.sign(
       { id: user.id, username: user.username, isAdmin: user.is_admin },
-      JWT_SECRET,
+      FINAL_JWT_SECRET,
       { expiresIn: '30d' }
     );
 
@@ -1299,6 +1338,54 @@ app.post('/api/admin/sync/list/:listId', verifyToken, requireAdmin, async (req, 
     res.status(500).json({ error: error.message });
   }
 })
+
+// POST /api/admin/cache-profile-pictures - Re-cache all user profile pictures from HA
+app.post('/api/admin/cache-profile-pictures', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const db = getDatabase();
+    const { downloadAndEncodeHAPicture, getHAPersons } = await import('./ha-integration.js');
+
+    const users = db.prepare('SELECT id, username, ha_person_entity_id FROM users WHERE ha_person_entity_id IS NOT NULL').all();
+
+    if (users.length === 0) {
+      return res.json({ success: true, cached: 0, message: 'No users with HA person mappings' });
+    }
+
+    let cached = 0;
+
+    // Fetch all HA persons once
+    const persons = await getHAPersons();
+
+    for (const user of users) {
+      try {
+        const person = persons.find(p => p.entity_id === user.ha_person_entity_id);
+        
+        if (person && person.picture) {
+          // Download and encode the picture
+          const dataUrl = await downloadAndEncodeHAPicture(person.picture);
+          
+          if (dataUrl) {
+            db.prepare('UPDATE users SET profile_picture_url = ? WHERE id = ?')
+              .run(dataUrl, user.id);
+            cached++;
+            console.log(`[OK] Cached picture for user: ${user.username}`);
+          }
+        }
+      } catch (userError) {
+        console.warn(`[WARN] Failed to cache picture for user ${user.username}:`, userError.message);
+      }
+    }
+
+    res.json({
+      success: true,
+      cached: cached,
+      total: users.length,
+      message: `Successfully cached ${cached} out of ${users.length} profile pictures`
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
 
 /**
  * USER ROUTES
@@ -1885,12 +1972,13 @@ app.delete('/api/items/:itemId', verifyToken, async (req, res) => {
  * CATEGORIES ROUTES
  */
 
+// SECURITY: Require authentication to fetch categories
 // GET /api/categories - Get all available categories
-app.get('/api/categories', (req, res) => {
+app.get('/api/categories', verifyToken, (req, res) => {
   try {
     res.json(getAllCategories());
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(500).json({ error: 'Failed to fetch categories' });
   }
 });
 

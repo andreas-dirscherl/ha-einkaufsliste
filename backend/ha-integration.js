@@ -502,6 +502,36 @@ export async function getPersonLocation(personEntityId) {
   }
 }
 
+/**
+ * Download and encode HA picture as Base64 Data URL
+ * @param {string} pictureUrl - Full URL to the picture (e.g., http://192.168.1.1:8123/api/image/serve/...)
+ * @returns {Promise<string>} Data URL string (data:image/jpeg;base64,...)
+ */
+export async function downloadAndEncodeHAPicture(pictureUrl) {
+  if (!pictureUrl) {
+    return null;
+  }
+
+  try {
+    const response = await axios.get(pictureUrl, {
+      responseType: 'arraybuffer',
+      timeout: 10000
+    });
+
+    // Detect image type from response headers or URL
+    const contentType = response.headers['content-type'] || 'image/jpeg';
+    const base64Data = Buffer.from(response.data).toString('base64');
+    
+    const dataUrl = `data:${contentType};base64,${base64Data}`;
+    console.log(`[OK] Picture cached from ${pictureUrl.substring(0, 50)}... (${base64Data.length} bytes)`);
+    
+    return dataUrl;
+  } catch (error) {
+    console.error(`[ERROR] Failed to download picture from ${pictureUrl}:`, error.message);
+    return null;
+  }
+}
+
 export default {
   initHAConnection,
   getHAClient,
@@ -512,5 +542,6 @@ export default {
   deleteItemFromHA,
   getHAPersons,
   getHAZones,
-  getPersonLocation
+  getPersonLocation,
+  downloadAndEncodeHAPicture
 };
