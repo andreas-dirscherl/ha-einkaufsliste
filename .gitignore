@@ -47,3 +47,7 @@ coverage/
 # Develop
 .impeccable
 .agents
+
+# Memory and Notes (local-only)
+/memories/
+ZONE_MAPPING_FEATURE.md
