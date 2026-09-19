@@ -340,6 +340,9 @@ button {
   display: flex;
   border-bottom: 2px solid var(--color-gray-200);
   overflow-x: auto;
+  overflow-y: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
   --tab-indicator-left: 0;
   --tab-indicator-width: 0;
 }
@@ -401,11 +404,33 @@ button {
 .tab-content {
   display: none;
   animation: fadeIn 0.2s ease-out;
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.profile-tab-content::-webkit-scrollbar,
+.tab-content::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .profile-tab-content.active,
 .tab-content.active {
   display: block;
+  overflow-y: hidden !important;
+  overflow-x: hidden !important;
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
+}
+
+.profile-tab-content.active::-webkit-scrollbar,
+.tab-content.active::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }
 
 .profile-tab-content.hidden,
@@ -1056,6 +1081,7 @@ button:active:not(:disabled) {
    ============================================================================ */
 .tabs-container::-webkit-scrollbar {
   height: 3px;
+  width: 0 !important;
 }
 
 .tabs-container::-webkit-scrollbar-track {
@@ -1069,6 +1095,28 @@ button:active:not(:disabled) {
 
 .tabs-container::-webkit-scrollbar-thumb:hover {
   background: var(--color-gray-400);
+}
+
+/* ============================================================================
+   HIDE VERTICAL SCROLLBARS IN TAB CONTAINERS
+   ============================================================================ */
+#usersList::-webkit-scrollbar,
+#listsList::-webkit-scrollbar,
+#categoriesList::-webkit-scrollbar,
+#permissionsList::-webkit-scrollbar,
+#haListsList::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+#usersList,
+#listsList,
+#categoriesList,
+#permissionsList,
+#haListsList {
+  -ms-overflow-style: none !important;
+  scrollbar-width: none !important;
 }
 
 /* ============================================================================

@@ -407,7 +407,7 @@
             <h2>Benutzer</h2>
             <button id="addUserBtn" class="btn btn-primary" onclick="openUserModal()" style="width: auto; display: flex; align-items: center; gap: var(--spacing-sm);"><span style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">+</span> Neu</button>
           </div>
-          <div id="usersList" style="overflow-x: auto;">
+          <div id="usersList" style="overflow-x: auto; overflow-y: hidden;">
             <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
           </div>
         </div>
@@ -419,7 +419,7 @@
           <div class="header-row">
             <h2>Listen</h2>
           </div>
-          <div id="listsList" style="overflow-x: auto;">
+          <div id="listsList" style="overflow-x: auto; overflow-y: hidden;">
             <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
           </div>
         </div>
@@ -429,7 +429,7 @@
       <div id="permissions-tab" class="profile-tab-content">
         <div class="data-section">
           <h2 class="mb-lg">Berechtigungen</h2>
-          <div id="permissionsList" style="overflow-x: auto;">
+          <div id="permissionsList" style="overflow-x: auto; overflow-y: hidden;">
             <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
           </div>
         </div>
@@ -442,7 +442,7 @@
             <h2>Kategorien</h2>
             <button class="btn btn-primary" onclick="openCategoryModal()" style="width: auto; display: flex; align-items: center; gap: var(--spacing-sm);"><span style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">+</span> Neu</button>
           </div>
-          <div id="categoriesList" style="overflow-x: auto;">
+          <div id="categoriesList" style="overflow-x: auto; overflow-y: hidden;">
             <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
           </div>
         </div>
@@ -460,7 +460,7 @@
 
         <div class="data-section">
           <h3 class="mb-lg">Home Assistant Listen</h3>
-          <div id="haListsList" style="overflow-x: auto;">
+          <div id="haListsList" style="overflow-x: auto; overflow-y: hidden;">
             <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
           </div>
         </div>
@@ -858,8 +858,8 @@
       const containerRect = container.getBoundingClientRect();
       const btnRect = activeBtn.getBoundingClientRect();
       
-      // Position relative to container (getBoundingClientRect already accounts for scrolling)
-      const left = btnRect.left - containerRect.left;
+      // Position relative to container, accounting for horizontal scroll
+      const left = btnRect.left - containerRect.left + container.scrollLeft;
       const width = btnRect.width;
       
       // Set CSS custom properties for the pseudo-element animation
@@ -2211,6 +2211,11 @@
     setTimeout(() => {
       document.querySelectorAll('.tabs-container').forEach(container => {
         updateTabIndicator(container);
+        
+        // Update indicator on horizontal scroll
+        container.addEventListener('scroll', () => {
+          updateTabIndicator(container);
+        });
       });
       
       // Also observe window resize to recalculate indicator positions

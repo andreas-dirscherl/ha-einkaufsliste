@@ -51,6 +51,10 @@ window.loadSharedMenu = async function(pageTitle, callback) {
     // Use a delay to ensure DOM and user data are ready
     setTimeout(() => {
       updateNavigationLinks(pageTitle);
+      // Also update user display with proper picture - ensures it works in both pages
+      if (typeof updateUserDisplayWithPicture === 'function') {
+        updateUserDisplayWithPicture();
+      }
     }, 500);
   } catch (error) {
     console.error('Failed to load menu component:', error);

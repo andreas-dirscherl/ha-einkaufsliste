@@ -521,11 +521,15 @@ app.patch('/api/users/:userId/ha-person', verifyToken, requireAdmin, async (req,
         const persons = await getHAPersons();
         const person = persons.find(p => p.entity_id === haPersonEntityId);
         
-        if (person && person.picture) {
-          profilePictureUrl = person.picture;
-          console.log(`[INFO] Found profile picture for ${haPersonEntityId}: ${profilePictureUrl}`);
+        if (person) {
+          if (person.picture) {
+            profilePictureUrl = person.picture;
+            console.log(`[OK] Found profile picture for ${haPersonEntityId}: ${profilePictureUrl}`);
+          } else {
+            console.log(`[WARN] ${haPersonEntityId} (${person.friendly_name}) has NO picture in HA`);
+          }
         } else {
-          console.log(`[WARN] No picture found for HA person ${haPersonEntityId}`);
+          console.log(`[WARN] Person ${haPersonEntityId} not found in HA`);
         }
       } catch (error) {
         console.error(`[ERROR] Failed to fetch HA person picture: ${error.message}`);
@@ -541,7 +545,8 @@ app.patch('/api/users/:userId/ha-person', verifyToken, requireAdmin, async (req,
       .get(req.params.userId);
 
     const personStr = haPersonEntityId ? `HA person ${haPersonEntityId}` : 'no person';
-    console.log(`[OK] Mapped user ${user.username} to ${personStr}`);
+    const pictureStr = profilePictureUrl ? '(with picture)' : '(no picture)';
+    console.log(`[OK] Mapped user ${user.username} to ${personStr} ${pictureStr}`);
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: error.message });

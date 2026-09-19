@@ -396,18 +396,48 @@ export async function getHAPersons() {
     const response = await client.get('/api/states');
     const states = response.data;
 
+    // Get HA URL for making absolute picture URLs
+    if (!haConfig) {
+      haConfig = getConfig();
+    }
+    const haBaseUrl = haConfig?.ha_url || 'http://localhost:8123';
+
     // Filter only person entities
     const persons = states
       .filter(state => state.entity_id.startsWith('person.'))
-      .map(state => ({
-        entity_id: state.entity_id,
-        friendly_name: state.attributes.friendly_name || state.entity_id,
-        icon: state.attributes.icon || 'mdi:account',
-        picture: state.attributes.picture || null, // Extract profile picture URL
-        state: state.state
-      }));
+      .map(state => {
+        // Try multiple possible picture locations
+        let picture = state.attributes.picture || null;
+        
+        // Check for entity_picture as fallback
+        if (!picture && state.attributes.entity_picture) {
+          picture = state.attributes.entity_picture;
+        }
+        
+        // Convert relative HA image URLs to absolute URLs
+        if (picture && picture.startsWith('/api/image/')) {
+          picture = haBaseUrl.replace(/\/$/, '') + picture;
+        }
+        
+        return {
+          entity_id: state.entity_id,
+          friendly_name: state.attributes.friendly_name || state.entity_id,
+          icon: state.attributes.icon || 'mdi:account',
+          picture: picture,
+          state: state.state
+        };
+      });
 
-    console.log(`[INFO] Found ${persons.length} HA persons`);
+    console.log(`[INFO] Found ${persons.length} HA persons (HA URL: ${haBaseUrl})`);
+    
+    // Log which persons have pictures
+    persons.forEach(p => {
+      if (p.picture) {
+        console.log(`[INFO] ✓ ${p.entity_id} (${p.friendly_name}) has picture: ${p.picture}`);
+      } else {
+        console.log(`[INFO] ✗ ${p.entity_id} (${p.friendly_name}) NO picture`);
+      }
+    });
     return persons;
   } catch (error) {
     console.error('[ERROR] Failed to fetch HA persons:', error.message);
