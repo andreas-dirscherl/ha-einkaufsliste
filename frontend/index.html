@@ -99,27 +99,74 @@
       }
     }
 
-    /* Theme Switcher */
+    /* Theme Switcher - Icon Only Toggle */
     .theme-btn {
-      background: transparent;
-      border: none;
+      background: var(--bg-surface);
+      border: 2px solid var(--color-gray-200);
       cursor: pointer;
-      font-size: 1.2rem;
-      padding: 0.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--spacing-sm);
       border-radius: var(--radius-md);
       transition: all 0.2s ease;
-      opacity: 0.6;
+      opacity: 0.7;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 500;
     }
 
     .theme-btn:hover {
       opacity: 1;
-      transform: scale(1.1);
+      border-color: var(--color-primary);
+      transform: scale(1.05);
     }
 
     .theme-btn.active {
       opacity: 1;
       background: var(--color-primary);
       color: white;
+      border-color: var(--color-primary);
+    }
+
+    /* New icon-only button style for compact toggle */
+    .theme-btn-icon {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+      color: var(--text-secondary);
+      font-family: inherit;
+      padding: 0;
+      font-size: 16px;
+    }
+
+    .theme-btn-icon svg {
+      stroke-width: 2.5;
+    }
+
+    .theme-btn-icon:hover {
+      color: var(--text-primary);
+      transform: scale(1.15);
+      background: rgba(6, 182, 212, 0.08);
+      border-radius: var(--radius-md);
+    }
+
+    .theme-btn-icon.active {
+      background: var(--color-primary);
+      color: white;
+      border-radius: var(--radius-md);
+      box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+    }
+
+    .theme-btn-icon.active:hover {
+      background: var(--color-primary);
+      filter: brightness(1.1);
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
     }
 
     /* Animations for notifications */
@@ -144,60 +191,180 @@
         opacity: 0;
       }
     }
+
+    /* Modal Animations */
+    @keyframes modalSlideIn {
+      from {
+        transform: scale(0.95) translateY(-20px);
+        opacity: 0;
+      }
+      to {
+        transform: scale(1) translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes modalFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    /* Delete Confirmation Modal */
+    .delete-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .delete-modal:not(.hidden) {
+      pointer-events: auto;
+    }
+
+    .delete-modal.hidden {
+      display: none;
+    }
+
+    .delete-modal-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      animation: modalFadeIn 0.2s ease-out;
+    }
+
+    .delete-modal-content {
+      position: relative;
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      width: 90%;
+      max-width: 360px;
+      animation: modalSlideIn 0.3s ease-out;
+      overflow: hidden;
+    }
+
+    .delete-modal-header {
+      padding: var(--spacing-lg);
+      border-bottom: 1px solid var(--color-gray-200);
+    }
+
+    .delete-modal-header h3 {
+      margin: 0;
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .delete-modal-body {
+      padding: var(--spacing-lg);
+    }
+
+    .delete-modal-item-name {
+      font-weight: 600;
+      color: var(--text-primary);
+      margin: 0 0 var(--spacing-md) 0;
+      word-break: break-word;
+    }
+
+    .delete-modal-text {
+      color: var(--text-secondary);
+      margin: 0;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .delete-modal-footer {
+      display: flex;
+      gap: var(--spacing-md);
+      padding: var(--spacing-lg);
+      border-top: 1px solid var(--color-gray-200);
+      background: var(--bg-surface-alt);
+    }
+
+    .delete-modal-footer button {
+      flex: 1;
+    }
+
+    /* Swipe-to-Delete Enhancement */
+    .item {
+      position: relative;
+      transition: transform 0.15s ease-out;
+    }
+
+    /* Red delete background behind item (swipe) - only visible when swiped */
+    .item::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: var(--color-error);
+      border-radius: var(--radius-md);
+      z-index: -1;
+      display: none; /* Hidden by default */
+    }
+
+    /* Show red background only when swiped */
+    .item.swipe-revealed::before {
+      display: block;
+    }
+
+    /* Trash icon visible when swiped */
+    .item.swipe-revealed::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      right: var(--spacing-lg);
+      transform: translateY(-50%);
+      width: 24px;
+      height: 24px;
+      background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="white" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>') center / contain no-repeat;
+      animation: fadeIn 0.2s ease-out;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
   </style>
 </head>
 <body>
-  <div class="app-wrapper">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <h1 class="header-title">Einkaufsliste</h1>
-        <div class="header-actions">
-          <div class="header-menu-container">
-            <button class="header-menu-btn" id="headerMenuBtn" onclick="window.toggleHeaderMenu()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-            </button>
-            <div class="header-menu-dropdown" id="headerMenuDropdown">
-              <div id="adminMenuSection" class="hidden">
-                <a href="/admin.html" class="header-menu-item" style="text-decoration: none;">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path></svg>
-                  Admin Dashboard
-                </a>
-                <div class="header-menu-separator"></div>
-              </div>
-              <div style="padding: var(--spacing-sm) var(--spacing-md); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-gray-200); margin-bottom: var(--spacing-sm);">
-                <span style="font-size: 0.875rem; color: var(--text-secondary);">Design</span>
-                <div style="display: flex; gap: var(--spacing-xs); background: var(--bg-surface-alt); padding: var(--spacing-xs); border-radius: var(--radius-md);">
-                  <button id="themeBtnLight" class="theme-btn active" data-theme="light" title="Hell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg></button>
-                  <button id="themeBtnDark" class="theme-btn" data-theme="dark" title="Dunkel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
-                  <button id="themeBtnSystem" class="theme-btn" data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></button>
-                </div>
-              </div>
-              <!-- User Section -->
-              <div style="padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid var(--color-gray-200); margin-top: var(--spacing-sm);">
-                <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-                  <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-                    <span id="userInitial">—</span>
-                  </div>
-                  <div style="flex: 1; min-width: 0;">
-                    <div id="userDisplayLabel" style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Benutzer</div>
-                  </div>
-                </div>
-                <button class="header-menu-item" onclick="window.openProfileModal()" style="width: 100%; color: var(--text-primary); border-bottom: 1px solid var(--color-gray-200); padding-bottom: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  Profil bearbeiten
-                </button>
-                <button class="header-menu-item" onclick="window.logoutUser()" style="width: 100%; color: var(--color-error);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14"></path><polyline points="16 8 16 4 8 4 8 4"></polyline><line x1="16" y1="12" x2="2" y2="12"></line></svg>
-                  Abmelden
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
+  <!-- Offline Indicator (Discreet) -->
+  <div id="offlineIndicator" class="offline-indicator offline-indicator--hidden">
+    <span class="offline-indicator__icon">●</span>
+    <span class="offline-indicator__text">Offline</span>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div id="deleteModal" class="delete-modal hidden">
+    <div class="delete-modal-overlay"></div>
+    <div class="delete-modal-content">
+      <div class="delete-modal-header">
+        <h3>Artikel löschen?</h3>
       </div>
-    </header>
+      <div class="delete-modal-body">
+        <p id="deleteModalItemName" class="delete-modal-item-name"></p>
+        <p class="delete-modal-text">Diesen Artikel wirklich löschen? Dies kann nicht rückgängig gemacht werden.</p>
+      </div>
+      <div class="delete-modal-footer">
+        <button id="deleteModalCancel" class="btn btn-secondary">Abbrechen</button>
+        <button id="deleteModalConfirm" class="btn btn-danger">Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="app-wrapper">
+    <!-- Header will be loaded by menu-loader.js -->
 
     <!-- Main Content -->
     <main class="main-content">
@@ -231,10 +398,13 @@
           type="text" 
           id="itemInput" 
           placeholder="Neuen Artikel hinzufügen..."
+          name="article-item-input"
           autocomplete="off"
           autocorrect="off"
           autocapitalize="off"
           spellcheck="false"
+          data-lpignore="true"
+          data-form-type="other"
         >
         <button id="addBtn" class="btn btn-primary">Hinzu</button>
       </div>
@@ -269,11 +439,28 @@
     // Log online/offline status
     window.addEventListener('online', () => {
       console.log('[PWA] App is back online');
+      updateOfflineIndicator(false);
     });
     
     window.addEventListener('offline', () => {
       console.log('[PWA] App is offline - requests will be queued');
+      updateOfflineIndicator(true);
     });
+
+    // Update offline indicator
+    function updateOfflineIndicator(isOffline) {
+      const indicator = $('offlineIndicator');
+      if (isOffline) {
+        indicator.classList.remove('offline-indicator--hidden');
+      } else {
+        indicator.classList.add('offline-indicator--hidden');
+      }
+    }
+
+    // Check initial offline status
+    if (!navigator.onLine) {
+      updateOfflineIndicator(true);
+    }
 
     // App State
     let currentList = null;
@@ -600,8 +787,8 @@
               <span>${(list.item_count || 0)}</span>
             </span>
             <span class="list-card-stat">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px; flex-shrink: 0;"><path d="M22 19a2 2 0 0 1-2.414-.6l-5.4-7.769a2 2 0 0 0-3.197 0L2.41 16.6a2 2 0 1 1-3.196-2.8l.186-.168a2 2 0 0 0 3.01.001l5.4-7.769a2 2 0 0 1 3.196 0l5.4 7.769a2 2 0 0 0 3.01-.001l.186.168A2 2 0 0 1 22 19z"></path></svg>
-              <span>${list.category || 'Sonstiges'}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px; flex-shrink: 0;"><path d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <span>${(list.completed_count || 0)}</span>
             </span>
           </div>
         `;
@@ -625,15 +812,23 @@
 
     // Auto-select by zone
     async function autoSelectRecommendedList() {
+      if (!allLists || allLists.length === 0) {
+        console.log('[AUTO-SELECT] No lists available');
+        return;
+      }
+
       try {
         const result = await apiCall('GET', '/api/user/recommended-list');
-        if (result?.recommendedList) {
-          console.log(`Auto-selecting: ${result.recommendedList.name}`);
-          // Auto-open the list after 1 second
-          setTimeout(() => openList(result.recommendedList), 1000);
+        
+        if (result?.recommendedList?.id) {
+          console.log(`[AUTO-SELECT] ✓ Recommended: ${result.recommendedList.name} (Zone: ${result.zone || 'unknown'})`);
+          // Auto-open the list after 500ms
+          setTimeout(() => openList(result.recommendedList), 500);
+        } else {
+          console.log(`[AUTO-SELECT] No recommendation available (${result?.reason || 'unknown reason'})`);
         }
       } catch (error) {
-        console.warn('Auto-select failed:', error);
+        console.warn('[AUTO-SELECT] Error:', error.message);
       }
     }
 
@@ -681,47 +876,69 @@
     let touchCurrentX = 0;
     let swipeItem = null;
     const SWIPE_THRESHOLD = 80; // pixels
+    const MAX_SWIPE_DISTANCE = 200; // Maximum swipe distance before stopping
 
     // Detect touch start
     document.addEventListener('touchstart', (e) => {
-      touchStartX = e.touches[0].clientX;
+      // Only track if touching an item
+      const item = e.target.closest('.item');
+      if (item) {
+        touchStartX = e.touches[0].clientX;
+        touchCurrentX = touchStartX;
+        swipeItem = item;
+      }
     }, false);
 
     // Detect touch move
     document.addEventListener('touchmove', (e) => {
-      if (!touchStartX) return;
+      if (!swipeItem || !touchStartX) return;
+      
       const touch = e.touches[0];
       touchCurrentX = touch.clientX;
       const diff = touchStartX - touchCurrentX; // Positive = swipe left
       
-      // Get the item being swiped
-      const item = e.target.closest('.item');
-      if (!item || diff < 20) return; // Ignore small movements
+      // Ignore small movements and non-leftward movements
+      if (diff < 10) {
+        return;
+      }
       
-      swipeItem = item;
-      item.style.transform = `translateX(${Math.max(-diff, 0)}px)`;
+      // Limit swipe distance
+      const limitedDiff = Math.min(diff, MAX_SWIPE_DISTANCE);
+      
+      // Apply transform: negative value moves left
+      swipeItem.style.transform = `translateX(-${limitedDiff}px)`;
+      
+      // Show swipe indicator if threshold is near
+      if (diff > SWIPE_THRESHOLD * 0.7) {
+        swipeItem.classList.add('swipe-revealed');
+      }
     }, false);
 
     // Detect touch end
     document.addEventListener('touchend', (e) => {
-      if (!swipeItem) return;
+      if (!swipeItem || !touchStartX) return;
+      
       const diff = touchStartX - touchCurrentX;
       
       if (diff > SWIPE_THRESHOLD) {
-        // Swipe detected - show delete confirmation
+        // Swipe detected - show delete confirmation modal
         const itemId = swipeItem.dataset.itemId;
-        if (confirm('Artikel wirklich löschen?')) {
-          swipeItem.classList.add('animate-slide-out');
-          setTimeout(() => {
-            deleteItem(itemId, swipeItem);
-          }, 150);
-        } else {
-          // Reset position
-          swipeItem.style.transform = 'translateX(0)';
-        }
+        const itemTitle = swipeItem.dataset.itemTitle || swipeItem.querySelector('.item-title')?.textContent || 'Artikel';
+        
+        console.log(`[SWIPE] Swiped item ${itemId}: "${itemTitle}" (distance: ${diff}px)`);
+        
+        // Store the swiped item for the modal to use
+        window.pendingDeleteItem = {
+          id: itemId,
+          element: swipeItem,
+          title: itemTitle
+        };
+        
+        showDeleteConfirmation(itemTitle);
       } else {
         // Reset position if swipe threshold not met
         swipeItem.style.transform = 'translateX(0)';
+        swipeItem.classList.remove('swipe-revealed');
       }
       
       swipeItem = null;
@@ -751,10 +968,13 @@
       deleteBtn.textContent = 'Löschen';
       deleteBtn.addEventListener('click', (e) => {
         e.stopPropagation();
-        if (confirm('Artikel wirklich löschen?')) {
-          div.classList.add('animate-slide-out');
-          setTimeout(() => deleteItem(item.id, div), 150);
-        }
+        // Store the item for the modal to use
+        window.pendingDeleteItem = {
+          id: item.id,
+          element: div,
+          title: item.title
+        };
+        showDeleteConfirmation(item.title);
       });
 
       const actions = document.createElement('div');
@@ -763,8 +983,8 @@
 
       // Make entire item row clickable for toggle (except on touch devices during swipe)
       div.addEventListener('click', (e) => {
-        // Don't toggle if clicking delete button
-        if (e.target.closest('.item-action-btn')) return;
+        // Don't toggle if clicking delete button or checkbox
+        if (e.target.closest('.item-action-btn') || e.target.closest('.item-checkbox')) return;
         // Toggle checkbox
         checkbox.checked = !checkbox.checked;
         toggleItem(item.id, checkbox.checked);
@@ -784,7 +1004,6 @@
       if (!title || !currentList) return;
 
       input.value = '';
-      input.focus();
       hideAutoComplete();
 
       // Check if item with same title exists and is completed
@@ -806,8 +1025,7 @@
         // Create new item
         const result = await apiCall('POST', `/api/lists/${currentList}/items`, { title });
         if (result) {
-          $('itemsList').appendChild(createItemElement(result));
-          $('emptyItemsState').classList.add('hidden');
+          addItemToUI(result); // Use addItemToUI for proper sorting
           if (wsClient?.isConnected()) {
             wsClient.syncItemChange(currentList, 'create', result.id, result);
           }
@@ -837,9 +1055,33 @@
       }
     }
 
-    // Add item to UI
+    // Add item to UI (inserted in correct sorted position)
     function addItemToUI(item) {
-      $('itemsList').appendChild(createItemElement(item));
+      const itemsList = $('itemsList');
+      const newElement = createItemElement(item);
+      
+      // Find insertion point: after last active (non-completed) item
+      const allItems = itemsList.querySelectorAll('[data-item-id]');
+      let insertedAfter = false;
+      
+      for (const existingEl of allItems) {
+        const existingItem = {
+          is_completed: existingEl.classList.contains('completed') ? 1 : 0
+        };
+        
+        // If existing item is completed and new item is not, insert before this one
+        if (existingItem.is_completed && !item.is_completed) {
+          itemsList.insertBefore(newElement, existingEl);
+          insertedAfter = true;
+          break;
+        }
+      }
+      
+      // If not inserted yet (all items are active or list is empty), append at end
+      if (!insertedAfter) {
+        itemsList.appendChild(newElement);
+      }
+      
       $('emptyItemsState').classList.add('hidden');
     }
 
@@ -883,10 +1125,54 @@
       $('itemInput').value = '';
     }
 
+    // Delete Confirmation Modal Functions
+    function showDeleteConfirmation(itemTitle) {
+      const modal = $('deleteModal');
+      $('deleteModalItemName').textContent = `"${itemTitle}"`;
+      modal.classList.remove('hidden');
+    }
+
+    function hideDeleteModal() {
+      const modal = $('deleteModal');
+      modal.classList.add('hidden');
+      // Reset swipe state
+      if (window.pendingDeleteItem?.element) {
+        window.pendingDeleteItem.element.style.transform = 'translateX(0)';
+        window.pendingDeleteItem.element.classList.remove('swipe-revealed');
+      }
+      window.pendingDeleteItem = null;
+    }
+
+    async function confirmDelete() {
+      if (!window.pendingDeleteItem) return;
+      
+      const { id, element, title } = window.pendingDeleteItem;
+      hideDeleteModal();
+      
+      element.classList.add('animate-slide-out');
+      setTimeout(() => deleteItem(id, element), 150);
+    }
+
     // Event Listeners
     $('addBtn').addEventListener('click', addItem);
     $('itemInput').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') addItem();
+    });
+
+    // Delete Modal Event Listeners
+    $('deleteModalCancel').addEventListener('click', hideDeleteModal);
+    $('deleteModalConfirm').addEventListener('click', confirmDelete);
+    
+    // Close modal when clicking on overlay
+    const modal = $('deleteModal');
+    const overlay = modal.querySelector('.delete-modal-overlay');
+    overlay.addEventListener('click', hideDeleteModal);
+
+    // Close modal with Escape key
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !$('deleteModal').classList.contains('hidden')) {
+        hideDeleteModal();
+      }
     });
     
     // Auto-complete functionality
@@ -1154,22 +1440,7 @@
       updateThemeButtons(theme);
     }
 
-    function updateThemeButtons(theme) {
-      document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-theme') === theme) {
-          btn.classList.add('active');
-        }
-      });
-    }
-
-    // Theme button listeners
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const theme = btn.getAttribute('data-theme');
-        applyTheme(theme);
-      });
-    });
+    // Theme functions moved to menu-loader.js
 
     // ===== PROFILE MANAGEMENT =====
     
@@ -1547,21 +1818,28 @@
 
     // Update user display when loaded
     function updateUserDisplay() {
-      const userDisplayLabel = document.getElementById('userDisplayLabel');
-      const userInitial = document.getElementById('userInitial');
-      if (user?.username) {
-        userDisplayLabel.textContent = user.username;
-        userInitial.textContent = user.username.charAt(0).toUpperCase();
-      }
+      // Wait for DOM to have the elements
+      const maxRetries = 10;
+      let retries = 0;
+      const interval = setInterval(() => {
+        const userDisplayLabel = document.getElementById('userDisplayLabel');
+        const userInitial = document.getElementById('userInitial');
+        if (userDisplayLabel && userInitial) {
+          if (user?.username) {
+            userDisplayLabel.textContent = user.username;
+            userInitial.textContent = user.username.charAt(0).toUpperCase();
+          }
+          clearInterval(interval);
+        } else if (retries++ >= maxRetries) {
+          clearInterval(interval);
+          console.warn('[MENU] User elements not found after retries');
+        }
+      }, 50);
     }
-
-    // Init theme
-    initTheme();
 
     // Init
     initWebSocket();
     loadListsAsCards();
-    updateUserDisplay();
     
     // Start zone monitoring for push notifications
     requestNotificationPermission();
@@ -1725,6 +2003,20 @@
       </div>
     </div>
   </div>
+
+  <!-- Load shared menu component -->
+  <script src="/menu-loader.js"></script>
+  <script>
+    // Initialize menu after page is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      window.loadSharedMenu('Einkaufsliste', () => {
+        // Callback after menu is loaded
+        if (typeof updateUserDisplay === 'function') {
+          updateUserDisplay();
+        }
+      });
+    });
+  </script>
 
 </body>
 </html>

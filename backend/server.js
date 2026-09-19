@@ -964,6 +964,7 @@ app.patch('/api/lists/:listId/zones', verifyToken, requireAdmin, (req, res) => {
     // Broadcast to subscribers
     broadcastToList(req.params.listId, {
       type: 'list-updated',
+      listId: req.params.listId,
       list: db.prepare('SELECT * FROM lists WHERE id = ?').get(req.params.listId)
     });
 
@@ -1538,8 +1539,11 @@ app.get('/api/lists', verifyToken, (req, res) => {
     
     // Add dynamic item count to each list
     const listsWithCounts = lists.map(list => {
-      const itemCount = db.prepare('SELECT COUNT(*) as count FROM items WHERE list_id = ?').get(list.id).count;
-      return { ...list, item_count: itemCount };
+      // Count only active (not completed) items
+      const activeCount = db.prepare('SELECT COUNT(*) as count FROM items WHERE list_id = ? AND is_completed = 0').get(list.id).count;
+      // Count completed items
+      const completedCount = db.prepare('SELECT COUNT(*) as count FROM items WHERE list_id = ? AND is_completed = 1').get(list.id).count;
+      return { ...list, item_count: activeCount, completed_count: completedCount };
     });
     
     res.json(listsWithCounts);
@@ -1628,6 +1632,7 @@ app.patch('/api/admin/lists/:id', verifyToken, requireAdmin, (req, res) => {
     // Broadcast to all users on this list
     broadcastToList(listId, {
       type: 'list-updated',
+      listId: listId,
       list
     });
     
@@ -1691,19 +1696,24 @@ app.post('/api/lists/:listId/items', verifyToken, async (req, res) => {
 
     const item = db.prepare('SELECT * FROM items WHERE id = ?').get(result.lastInsertRowid);
 
+    console.log(`[POST /items] Created item locally: ${item.title} (id: ${item.id}, ha_id: ${item.ha_item_id})`);
+
     // Push to HA in background
     try {
       await createItemInHA(item);
+      console.log(`[POST /items] ✓ Successfully pushed to HA: ${item.title}`);
     } catch (haError) {
-      console.warn('Failed to create in HA:', haError.message);
-      // Item still created locally, will retry on sync
+      console.warn(`[POST /items] ⚠ Failed to push to HA: ${item.title} - ${haError.message}`);
+      // Item still created locally, will retry on next sync cycle
     }
 
     // Broadcast to all users on this list (real-time sync)
     broadcastToList(req.params.listId, {
       type: 'item-created',
+      listId: req.params.listId,
       item,
-      userId: req.user.id
+      userId: req.user.id,
+      timestamp: new Date().toISOString()
     });
 
     res.status(201).json(item);
@@ -1750,8 +1760,10 @@ app.patch('/api/items/:itemId', verifyToken, async (req, res) => {
     // Broadcast to all users on this list (real-time sync)
     broadcastToList(updated.list_id, {
       type: 'item-updated',
+      listId: updated.list_id,
       item: updated,
-      userId: req.user.id
+      userId: req.user.id,
+      timestamp: new Date().toISOString()
     });
 
     res.json(updated);
@@ -1793,8 +1805,10 @@ app.delete('/api/items/:itemId', verifyToken, async (req, res) => {
     // Broadcast to all users on this list (real-time sync)
     broadcastToList(item.list_id, {
       type: 'item-deleted',
+      listId: item.list_id,
       itemId: req.params.itemId,
-      userId: req.user.id
+      userId: req.user.id,
+      timestamp: new Date().toISOString()
     });
 
     res.json({ success: true });

@@ -4,7 +4,7 @@
  */
 
 import { getDatabase } from './database.js';
-import { syncHALists, syncHAListItems } from './ha-integration.js';
+import { syncHALists, syncHAListItems, createItemInHA } from './ha-integration.js';
 import { broadcastToList } from './websocket-server.js';
 
 let pollingInterval = null;
@@ -53,6 +53,10 @@ async function runHAPollingCycle() {
     // Sync each list from HA
     for (const list of lists) {
       try {
+        // Step 1: Retry pushing items that failed before (have local_* IDs)
+        await retryFailedHAPushes(list.id);
+
+        // Step 2: Sync items from HA
         await syncHAListItems(list.ha_entity_id);
 
         // After sync, get items and broadcast to all clients watching this list
@@ -80,5 +84,36 @@ async function runHAPollingCycle() {
     }
   } catch (error) {
     console.error('[POLLING] Fatal error in polling cycle:', error.message);
+  }
+}
+
+/**
+ * Retry pushing items that failed before (with local_* IDs)
+ */
+async function retryFailedHAPushes(listId) {
+  try {
+    const db = getDatabase();
+
+    // Find all items with local_* IDs (failed pushes)
+    const failedItems = db.prepare(`
+      SELECT * FROM items
+      WHERE list_id = ? AND ha_item_id LIKE 'local_%'
+    `).all(listId);
+
+    if (failedItems.length === 0) return;
+
+    console.log(`[RETRY-HA] Found ${failedItems.length} items to retry for list ${listId}`);
+
+    for (const item of failedItems) {
+      try {
+        await createItemInHA(item);
+        console.log(`[RETRY-HA] ✓ Successfully pushed to HA: ${item.title} (id: ${item.id})`);
+      } catch (error) {
+        console.warn(`[RETRY-HA] Still failing: ${item.title} - ${error.message}`);
+        // Will retry again next cycle
+      }
+    }
+  } catch (error) {
+    console.warn('[RETRY-HA] Error in retry process:', error.message);
   }
 }

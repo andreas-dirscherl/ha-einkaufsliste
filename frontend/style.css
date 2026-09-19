@@ -1192,6 +1192,103 @@ button:active:not(:disabled) {
   color: var(--color-primary);
 }
 
+/* ============================================================================
+   AUTOFILL & BROWSER FORM FIELDS - DISABLE AUTOCOMPLETE
+   ============================================================================ */
+
+/* Prevent browser autofill/autocomplete popups */
+#itemInput {
+  /* Hide autofill icon */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Prevent browser autofill background color (Chrome/Safari) */
+#itemInput:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+/* Dark mode autofill override */
+[data-theme="dark"] #itemInput:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 30px var(--color-gray-800) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+}
+
+/* Disable autofill delay animations */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-transition: background-color 5000s ease-in-out 0s;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Hide LastPass and similar password manager icons */
+input[type="text"]::-ms-clear,
+input[type="text"]::-webkit-search-cancel-button {
+  display: none;
+}
+
+/* ============================================================================
+   OFFLINE INDICATOR - DISCREET STATUS BAR
+   ============================================================================ */
+
+.offline-indicator {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(90deg, #f97316 0%, #ea580c 100%);
+  color: white;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  z-index: 999;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.3s ease-out;
+}
+
+.offline-indicator--hidden {
+  display: none;
+}
+
+.offline-indicator__icon {
+  display: inline-block;
+  animation: pulse 1.5s infinite;
+  font-size: 0.6rem;
+}
+
+.offline-indicator__text {
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
 .header-menu-item svg {
   width: 20px;
   height: 20px;

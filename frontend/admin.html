@@ -98,6 +98,45 @@
       display: none;
     }
 
+    /* Theme button styling */
+    .theme-btn-icon {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+      color: var(--text-secondary);
+      font-family: inherit;
+      padding: 0;
+      font-size: 16px;
+    }
+
+    .theme-btn-icon svg {
+      stroke-width: 2.5;
+    }
+
+    .theme-btn-icon:hover {
+      color: var(--text-primary);
+      transform: scale(1.15);
+      background: rgba(6, 182, 212, 0.08);
+      border-radius: var(--radius-md);
+    }
+
+    .theme-btn-icon.active {
+      background: var(--color-primary);
+      color: white;
+      border-radius: var(--radius-md);
+      box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+    }
+
+    .theme-btn-icon.active:hover {
+      background: var(--color-primary);
+      filter: brightness(1.1);
+      box-shadow: 0 4px 12px rgba(6, 182, 212, 0.4);
+    }
+
     .modal {
       background: var(--bg-surface);
       border-radius: var(--radius-lg);
@@ -329,54 +368,7 @@
 </head>
 <body>
   <div class="admin-wrapper">
-    <!-- Header -->
-    <header class="header">
-      <div class="header-content">
-        <h1 class="header-title">Admin Dashboard</h1>
-        <div class="header-actions">
-          <div class="header-menu-container">
-            <button class="header-menu-btn" id="headerMenuBtn" onclick="window.toggleHeaderMenu()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-            </button>
-            <div class="header-menu-dropdown" id="headerMenuDropdown">
-              <a href="/" class="header-menu-item" style="text-decoration: none;">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                Zurück zur App
-              </a>
-              <div class="header-menu-separator"></div>
-              <div style="padding: var(--spacing-sm) var(--spacing-md); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-gray-200); margin-bottom: var(--spacing-sm);">
-                <span style="font-size: 0.875rem; color: var(--text-secondary);">Design</span>
-                <div style="display: flex; gap: var(--spacing-xs); background: var(--bg-surface-alt); padding: var(--spacing-xs); border-radius: var(--radius-md);">
-                  <button id="themeBtnLight" class="theme-btn active" data-theme="light" title="Hell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg></button>
-                  <button id="themeBtnDark" class="theme-btn" data-theme="dark" title="Dunkel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
-                  <button id="themeBtnSystem" class="theme-btn" data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></button>
-                </div>
-              </div>
-              <!-- User Section -->
-              <div style="padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid var(--color-gray-200); margin-top: var(--spacing-sm);">
-                <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
-                  <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
-                    <span id="userInitial">—</span>
-                  </div>
-                  <div style="flex: 1; min-width: 0;">
-                    <div id="userDisplayLabel" style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
-                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Benutzer</div>
-                  </div>
-                </div>
-                <button class="header-menu-item" onclick="window.openProfileModal()" style="width: 100%; color: var(--text-primary); border-bottom: 1px solid var(--color-gray-200); padding-bottom: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                  Profil bearbeiten
-                </button>
-                <button class="header-menu-item" onclick="window.logoutUser()" style="width: 100%; color: var(--color-error);">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14"></path><polyline points="16 8 16 4 8 4 8 4"></polyline><line x1="16" y1="12" x2="2" y2="12"></line></svg>
-                  Abmelden
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </header>
+    <!-- Header will be loaded by menu-loader.js -->
 
     <!-- Main Content -->
     <main class="admin-content">
@@ -2106,79 +2098,38 @@
 
     // Update user display in header menu
     function updateUserDisplay() {
-      const userDisplayLabel = document.getElementById('userDisplayLabel');
-      const userInitial = document.getElementById('userInitial');
-      if (user?.username) {
-        userDisplayLabel.textContent = user.username;
-        userInitial.textContent = user.username.charAt(0).toUpperCase();
-      }
-    }
-
-    // Theme Management
-    function initTheme() {
-      const savedTheme = localStorage.getItem('app-theme') || 'light';
-      applyTheme(savedTheme);
-      updateThemeButtons(savedTheme);
-    }
-
-    function applyTheme(theme) {
-      if (theme === 'system') {
-        document.documentElement.removeAttribute('data-theme');
-        localStorage.setItem('app-theme', 'system');
-      } else {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('app-theme', theme);
-      }
-      updateThemeButtons(theme);
-    }
-
-    function updateThemeButtons(theme) {
-      document.querySelectorAll('.theme-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('data-theme') === theme) {
-          btn.classList.add('active');
-        }
-      });
-    }
-
-    // Theme button listeners
-    document.querySelectorAll('.theme-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const theme = btn.getAttribute('data-theme');
-        applyTheme(theme);
-      });
-    });
-
-    // Initial load based on hash - using DOMContentLoaded event with longer delay for token initialization
-    if (document.readyState === 'loading') {
-      // Still loading
-      document.addEventListener('DOMContentLoaded', () => {
-        // Wait longer to ensure token is fully initialized after login
-        setTimeout(() => {
-          initTheme();
-          updateUserDisplay();
-          const initialTab = window.location.hash.substring(1) || 'users';
-          console.log('[INIT] Initializing tab:', initialTab);
-          if (typeof window.switchTab === 'function') {
-            window.switchTab(initialTab);
-            console.log('[INIT] switchTab called successfully');
-          } else {
-            console.error('[INIT] switchTab is not a function!');
+      // Wait for DOM to have the elements
+      const maxRetries = 10;
+      let retries = 0;
+      const interval = setInterval(() => {
+        const userDisplayLabel = document.getElementById('userDisplayLabel');
+        const userInitial = document.getElementById('userInitial');
+        if (userDisplayLabel && userInitial) {
+          if (user?.username) {
+            userDisplayLabel.textContent = user.username;
+            userInitial.textContent = user.username.charAt(0).toUpperCase();
           }
-        }, 500);
-      });
-    } else {
-      // Already loaded
+          clearInterval(interval);
+        } else if (retries++ >= maxRetries) {
+          clearInterval(interval);
+          console.warn('[ADMIN] User elements not found after retries');
+        }
+      }, 50);
+    }
+
+    // Theme functions are now managed by menu-loader.js
+
+    // Initial load based on hash - moved to menu-loader callback
+    if (document.readyState !== 'loading') {
+      // Already loaded - initialize tabs
+      const initialTab = window.location.hash.substring(1) || 'users';
       setTimeout(() => {
-        initTheme();
-        updateUserDisplay();
-        const initialTab = window.location.hash.substring(1) || 'users';
         console.log('[INIT] Already loaded - Initializing tab:', initialTab);
         if (typeof window.switchTab === 'function') {
           window.switchTab(initialTab);
           console.log('[INIT] switchTab called successfully');
         }
-      }, 500);
+      }, 300);
     }
     
     
@@ -2205,5 +2156,32 @@
       });
     }, 0);
   </script>
+
+  <!-- Load shared menu component -->
+  <script src="/menu-loader.js"></script>
+  <script>
+    // Initialize menu after page is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      window.loadSharedMenu('Admin Dashboard', () => {
+        // Callback after menu is loaded
+        if (typeof updateUserDisplay === 'function') {
+          updateUserDisplay();
+        }
+        
+        // Initialize tabs
+        const initialTab = window.location.hash.substring(1) || 'users';
+        console.log('[INIT] Initializing tab:', initialTab);
+        setTimeout(() => {
+          if (typeof window.switchTab === 'function') {
+            window.switchTab(initialTab);
+            console.log('[INIT] switchTab called successfully');
+          } else {
+            console.error('[INIT] switchTab is not a function!');
+          }
+        }, 100);
+      });
+    });
+  </script>
+
 </body>
 </html>

@@ -218,12 +218,17 @@ export async function syncHAListItems(haEntityId) {
 
     console.log(`[syncHAListItems] Processing ${items.length} items`);
 
-    // Clear old items (or mark as deleted)
+    // Clear old items that were deleted in HA (but keep local-only items)
     const existingItems = db.prepare('SELECT id, ha_item_id FROM items WHERE list_id = ?').all(list.id);
     const haItemIds = items.map(item => item.uid || item.id).filter(Boolean);
 
     for (const existing of existingItems) {
-      if (!haItemIds.includes(existing.ha_item_id)) {
+      // Only delete items that:
+      // 1. Have a real HA ID (not starting with 'local_')
+      // 2. Are no longer in HA's items list
+      if (existing.ha_item_id && 
+          !existing.ha_item_id.startsWith('local_') && 
+          !haItemIds.includes(existing.ha_item_id)) {
         // Item was deleted in HA
         db.prepare('DELETE FROM items WHERE id = ?').run(existing.id);
         console.log(`[syncHAListItems] Deleted item: ${existing.ha_item_id}`);
@@ -318,10 +323,11 @@ export async function createItemInHA(item) {
 
     const list = db.prepare('SELECT ha_entity_id FROM lists WHERE id = ?').get(item.list_id);
     if (!list) {
-      throw new Error('List not found');
+      throw new Error('List not found in DB');
     }
 
     const haEntityId = list.ha_entity_id;
+    console.log(`[createItemInHA] Pushing to HA: "${item.title}" -> ${haEntityId}`);
 
     // Add new item to HA todo list
     const response = await client.post(`/api/services/todo/add_item`, {
@@ -330,17 +336,22 @@ export async function createItemInHA(item) {
       description: item.description
     });
 
-    console.log(`[OK] Created item in HA: ${item.title}`);
+    console.log(`[createItemInHA] Response:`, JSON.stringify(response.data).substring(0, 100));
 
     // Update local DB with HA item ID
     // HA returns the item UID in the response
     if (response.data && response.data[haEntityId]) {
       const haItemId = response.data[haEntityId];
+      console.log(`[createItemInHA] ✓ Got HA ID: ${haItemId}`);
       db.prepare('UPDATE items SET ha_item_id = ?, ha_synced_at = CURRENT_TIMESTAMP WHERE id = ?')
         .run(haItemId, item.id);
+      console.log(`[createItemInHA] ✓ Updated DB with HA ID`);
+    } else {
+      console.warn(`[createItemInHA] ⚠ No HA ID in response, item remains with local_* ID`);
     }
   } catch (error) {
-    console.error(`[ERROR] Failed to create item in HA:`, error.message);
+    console.error(`[createItemInHA] ✗ Error: ${error.message}`);
+    console.error(`[createItemInHA] Stack:`, error.stack);
     throw error;
   }
 }
