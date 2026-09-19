@@ -419,6 +419,33 @@
       navigator.serviceWorker.register('/sw.js').then(registration => {
         console.log('Service Worker registered');
         
+        // Check for updates every 5 minutes
+        setInterval(() => {
+          console.log('[PWA] Checking for updates...');
+          registration.update().catch(err => console.log('[PWA] Update check failed:', err));
+        }, 5 * 60 * 1000); // 5 minutes
+        
+        // Listen for new service worker
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('[PWA] New Service Worker found!');
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New service worker is ready to activate
+              console.log('[PWA] New Service Worker installed, activating immediately...');
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+        
+        // Listen for controller change (when new SW takes over)
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('[PWA] Service Worker updated! Reloading page...');
+          // Reload page to use new version
+          window.location.reload();
+        });
+        
         // Fallback: Trigger sync when online if Background Sync not available
         window.addEventListener('online', async () => {
           console.log('[PWA] Back online - attempting to sync offline requests');
@@ -506,9 +533,46 @@
           window.location.href = '/setup.html';
           return null;
         }
+        
+        // Handle offline response (202 Accepted - offline queued request)
+        if (response.status === 202) {
+          console.log('[OFFLINE] Server returned 202 (Offline mode), trying cache...');
+          if (method === 'GET' && 'caches' in window) {
+            try {
+              const cachedResponse = await caches.match(url);
+              if (cachedResponse && cachedResponse.ok) {
+                console.log('[OFFLINE] Found cached data, using that');
+                return await cachedResponse.json();
+              }
+            } catch (cacheError) {
+              console.warn('[OFFLINE] Cache lookup failed:', cacheError);
+            }
+          }
+        }
+        
         return await response.json();
       } catch (error) {
         console.error('API Error:', error);
+        
+        // OFFLINE FALLBACK: Try to get cached response
+        if (method === 'GET' && 'caches' in window) {
+          try {
+            const cachedResponse = await caches.match(url);
+            if (cachedResponse && cachedResponse.ok) {
+              console.log('[OFFLINE] Using cached response for:', url);
+              const data = await cachedResponse.json();
+              console.log('[OFFLINE] Loaded from cache:', data);
+              return data;
+            }
+          } catch (cacheError) {
+            console.warn('[OFFLINE] Cache lookup failed:', cacheError);
+          }
+        }
+        
+        // No cache available - show user we're offline
+        if (method === 'GET') {
+          console.warn('[OFFLINE] No cached data available for offline mode:', url);
+        }
         return null;
       }
     };
@@ -1824,15 +1888,31 @@
       const interval = setInterval(() => {
         const userDisplayLabel = document.getElementById('userDisplayLabel');
         const userInitial = document.getElementById('userInitial');
+        const userAvatar = document.getElementById('userAvatar');
         if (userDisplayLabel && userInitial) {
-          if (user?.username) {
-            userDisplayLabel.textContent = user.username;
-            userInitial.textContent = user.username.charAt(0).toUpperCase();
+          if (window.user?.username) {
+            userDisplayLabel.textContent = window.user.username;
+            userInitial.textContent = window.user.username.charAt(0).toUpperCase();
+            
+            // If profile picture is available, update avatar to show image
+            if (window.user.profile_picture_url && userAvatar) {
+              userAvatar.innerHTML = `<img src="${window.user.profile_picture_url}" alt="${window.user.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            }
           }
+          
+          // Always update navigation links (even if user is not loaded)
+          if (window.updateNavigationLinks) {
+            window.updateNavigationLinks('Einkaufsliste');
+          }
+          
           clearInterval(interval);
         } else if (retries++ >= maxRetries) {
           clearInterval(interval);
           console.warn('[MENU] User elements not found after retries');
+          // Still try to update nav links as fallback
+          if (window.updateNavigationLinks) {
+            window.updateNavigationLinks('Einkaufsliste');
+          }
         }
       }, 50);
     }
@@ -2004,13 +2084,45 @@
     </div>
   </div>
 
-  <!-- Load shared menu component -->
   <script src="/menu-loader.js"></script>
   <script>
     // Initialize menu after page is loaded
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      // ALWAYS fetch current user from server if token exists
+      const token = localStorage.getItem('token');
+      let userLoaded = false;
+      
+      if (token) {
+        try {
+          const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            window.user = userData;
+            localStorage.setItem('user', JSON.stringify(userData));
+            userLoaded = true;
+            console.log('[USER] Loaded from server:', userData.username, 'Admin:', userData.is_admin);
+          } else {
+            console.warn('[USER] Server returned status:', response.status);
+            // If auth fails, redirect to setup
+            if (response.status === 401 || response.status === 404) {
+              window.location.href = '/setup.html';
+            }
+          }
+        } catch (error) {
+          console.warn('[USER] Failed to load from server:', error.message);
+        }
+      }
+      
+      // Load menu with callback - callback will be called after menu is loaded
       window.loadSharedMenu('Einkaufsliste', () => {
-        // Callback after menu is loaded
+        // Call updateUserDisplay in callback to ensure user data is loaded first
         if (typeof updateUserDisplay === 'function') {
           updateUserDisplay();
         }

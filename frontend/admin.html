@@ -950,9 +950,46 @@
           window.location.href = '/setup.html';
           return null;
         }
+        
+        // Handle offline response (202 Accepted - offline queued request)
+        if (response.status === 202) {
+          console.log('[OFFLINE] Server returned 202 (Offline mode), trying cache...');
+          if (method === 'GET' && 'caches' in window) {
+            try {
+              const cachedResponse = await caches.match(url);
+              if (cachedResponse && cachedResponse.ok) {
+                console.log('[OFFLINE] Found cached data, using that');
+                return await cachedResponse.json();
+              }
+            } catch (cacheError) {
+              console.warn('[OFFLINE] Cache lookup failed:', cacheError);
+            }
+          }
+        }
+        
         return await response.json();
       } catch (error) {
         console.error('API Error:', error);
+        
+        // OFFLINE FALLBACK: Try to get cached response
+        if (method === 'GET' && 'caches' in window) {
+          try {
+            const cachedResponse = await caches.match(url);
+            if (cachedResponse && cachedResponse.ok) {
+              console.log('[OFFLINE] Using cached response for:', url);
+              const data = await cachedResponse.json();
+              console.log('[OFFLINE] Loaded from cache:', data);
+              return data;
+            }
+          } catch (cacheError) {
+            console.warn('[OFFLINE] Cache lookup failed:', cacheError);
+          }
+        }
+        
+        // No cache available - show user we're offline
+        if (method === 'GET') {
+          console.warn('[OFFLINE] No cached data available for offline mode:', url);
+        }
         return null;
       }
     }
@@ -1781,6 +1818,7 @@
         <table class="data-table">
           <thead>
             <tr>
+              <th></th>
               <th>Benutzer</th>
               <th>Admin</th>
               <th>HA-Person</th>
@@ -1789,8 +1827,19 @@
             </tr>
           </thead>
           <tbody>
-            ${data.map(u => `
+            ${data.map(u => {
+              // Use profile picture if available, otherwise generate avatar with initials
+              const avatarContent = u.profile_picture_url 
+                ? `<img src="${u.profile_picture_url}" alt="${u.username}" style="width: 100%; height: 100%; object-fit: cover;">`
+                : `<span style="font-weight: bold; font-size: 1rem;">${u.username.charAt(0).toUpperCase()}</span>`;
+              
+              return `
               <tr>
+                <td style="text-align: center;">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; overflow: hidden;">
+                    ${avatarContent}
+                  </div>
+                </td>
                 <td>${u.username}</td>
                 <td>${u.is_admin ? 'Ja' : 'Nein'}</td>
                 <td><code style="background: var(--color-gray-100); padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">${u.ha_person_entity_id || '-'}</code></td>
@@ -1803,7 +1852,7 @@
                   </div>
                 </td>
               </tr>
-            `).join('')}
+            `}).join('')}
           </tbody>
         </table>
       `;
@@ -2104,15 +2153,31 @@
       const interval = setInterval(() => {
         const userDisplayLabel = document.getElementById('userDisplayLabel');
         const userInitial = document.getElementById('userInitial');
+        const userAvatar = document.getElementById('userAvatar');
         if (userDisplayLabel && userInitial) {
-          if (user?.username) {
-            userDisplayLabel.textContent = user.username;
-            userInitial.textContent = user.username.charAt(0).toUpperCase();
+          if (window.user?.username) {
+            userDisplayLabel.textContent = window.user.username;
+            userInitial.textContent = window.user.username.charAt(0).toUpperCase();
+            
+            // If profile picture is available, update avatar to show image
+            if (window.user.profile_picture_url && userAvatar) {
+              userAvatar.innerHTML = `<img src="${window.user.profile_picture_url}" alt="${window.user.username}" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
+            }
           }
+          
+          // Always update navigation links (even if user is not loaded)
+          if (window.updateNavigationLinks) {
+            window.updateNavigationLinks('Admin Dashboard');
+          }
+          
           clearInterval(interval);
         } else if (retries++ >= maxRetries) {
           clearInterval(interval);
           console.warn('[ADMIN] User elements not found after retries');
+          // Still try to update nav links as fallback
+          if (window.updateNavigationLinks) {
+            window.updateNavigationLinks('Admin Dashboard');
+          }
         }
       }, 50);
     }
@@ -2161,7 +2226,39 @@
   <script src="/menu-loader.js"></script>
   <script>
     // Initialize menu after page is loaded
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      // ALWAYS fetch current user from server if token exists
+      const token = localStorage.getItem('token');
+      let userLoaded = false;
+      
+      if (token) {
+        try {
+          const response = await fetch('/api/auth/me', {
+            method: 'GET',
+            headers: { 
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (response.ok) {
+            const userData = await response.json();
+            window.user = userData;
+            localStorage.setItem('user', JSON.stringify(userData));
+            userLoaded = true;
+            console.log('[USER] Loaded from server:', userData.username, 'Admin:', userData.is_admin);
+          } else {
+            console.warn('[USER] Server returned status:', response.status);
+            // If auth fails, redirect to setup
+            if (response.status === 401 || response.status === 404) {
+              window.location.href = '/setup.html';
+            }
+          }
+        } catch (error) {
+          console.warn('[USER] Failed to load from server:', error.message);
+        }
+      }
+      
       window.loadSharedMenu('Admin Dashboard', () => {
         // Callback after menu is loaded
         if (typeof updateUserDisplay === 'function') {
@@ -2181,6 +2278,42 @@
         }, 100);
       });
     });
+
+    // Register Service Worker for PWA and auto-updates
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('[PWA] Service Worker registered on admin page');
+        
+        // Check for updates every 5 minutes
+        setInterval(() => {
+          console.log('[PWA] Checking for updates...');
+          registration.update().catch(err => console.log('[PWA] Update check failed:', err));
+        }, 5 * 60 * 1000); // 5 minutes
+        
+        // Listen for new service worker
+        registration.addEventListener('updatefound', () => {
+          const newWorker = registration.installing;
+          console.log('[PWA] New Service Worker found!');
+          
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              // New service worker is ready to activate
+              console.log('[PWA] New Service Worker installed, activating immediately...');
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+        
+        // Listen for controller change (when new SW takes over)
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          console.log('[PWA] Service Worker updated! Reloading page...');
+          // Reload page to use new version
+          window.location.reload();
+        });
+      }).catch(err => {
+        console.log('[PWA] Service Worker registration failed:', err);
+      });
+    }
   </script>
 
 </body>

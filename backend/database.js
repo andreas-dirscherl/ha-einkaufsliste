@@ -225,6 +225,14 @@ function applyMigrations() {
     // Column already exists, skip
   }
 
+  // Migration 3: Add profile picture URL for user avatars
+  try {
+    db.prepare('ALTER TABLE users ADD COLUMN profile_picture_url TEXT').run();
+    console.log('[MIGRATION] Added profile_picture_url column to users table');
+  } catch (e) {
+    // Column already exists, skip
+  }
+
   // Migration 2: Create zone_mappings table for area-based list associations
   db.exec(`
     CREATE TABLE IF NOT EXISTS zone_mappings (

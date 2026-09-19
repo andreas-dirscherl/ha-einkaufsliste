@@ -2,6 +2,10 @@ const CACHE_NAME = 'einkaufsliste-v1';
 const OFFLINE_DB = 'einkaufsliste-offline';
 const API_CACHE = 'einkaufsliste-api-v1';
 
+// Cache version for automatic updates
+// This gets updated on each deployment
+const CACHE_VERSION = Date.now();
+
 const URLS_TO_CACHE = [
   '/',
   '/index.html',
@@ -14,12 +18,15 @@ const URLS_TO_CACHE = [
  * Install Service Worker
  */
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installing Service Worker, cache version:', CACHE_VERSION);
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       console.log('Service Worker: Caching app shell');
       return cache.addAll(URLS_TO_CACHE);
     })
   );
+  // Immediately claim all clients (activate without waiting)
+  self.skipWaiting();
 });
 
 /**
@@ -219,6 +226,7 @@ function removeFromStore(objectStore, key) {
  */
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Received SKIP_WAITING message');
     self.skipWaiting();
   }
   
@@ -229,19 +237,26 @@ self.addEventListener('message', (event) => {
 });
 
 /**
- * Activate Service Worker
+ * Activate Service Worker - Claim all clients immediately
  */
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating Service Worker, version:', CACHE_VERSION);
   event.waitUntil(
+    // Clean up old caches
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           // Keep only current cache version
           if (cacheName !== CACHE_NAME && cacheName !== API_CACHE) {
+            console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
       );
+    }).then(() => {
+      // Claim all clients immediately - don't wait
+      console.log('[SW] Claiming all clients');
+      return self.clients.claim();
     })
   );
 });

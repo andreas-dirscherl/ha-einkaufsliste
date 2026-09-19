@@ -52,6 +52,18 @@ const server = http.createServer(app);
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Cache control middleware - ensure sw.js and index.html are always fresh
+app.use((req, res, next) => {
+  // Service Worker should never be cached
+  if (req.path === '/sw.js' || req.path === '/index.html' || req.path === '/admin.html') {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
+  }
+  next();
+});
+
 app.use(express.static(path.join(__dirname, '..', 'frontend')));
 
 // Initialize database on startup
@@ -290,6 +302,32 @@ async function handleLogin(req, res) {
 app.post('/api/auth/login', handleLogin);
 app.post('/api/login', handleLogin);
 
+// Get current authenticated user
+app.get('/api/auth/me', verifyToken, (req, res) => {
+  try {
+    const db = getDatabase();
+    const userId = req.user?.id;
+    
+    if (!userId) {
+      console.warn('[AUTH/ME] No user ID in token');
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+    
+    const user = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, profile_picture_url, created_at FROM users WHERE id = ?').get(userId);
+    
+    if (!user) {
+      console.warn('[AUTH/ME] User not found:', userId);
+      return res.status(404).json({ error: 'User not found' });
+    }
+    
+    console.log('[AUTH/ME] Returned user:', user.username);
+    res.json(user);
+  } catch (error) {
+    console.error('[AUTH/ME] Error:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 /**
  * ADMIN ROUTES
  */
@@ -298,7 +336,7 @@ app.post('/api/login', handleLogin);
 app.get('/api/admin/users', verifyToken, requireAdmin, (req, res) => {
   try {
     const db = getDatabase();
-    const users = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, created_at FROM users ORDER BY created_at DESC').all();
+    const users = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, profile_picture_url, created_at FROM users ORDER BY created_at DESC').all();
     res.json(users);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -332,7 +370,7 @@ app.post('/api/admin/users', verifyToken, requireAdmin, async (req, res) => {
       VALUES (?, ?, ?)
     `).run(username, passwordHash, isAdmin ? 1 : 0);
 
-    const user = db.prepare('SELECT id, username, is_admin, created_at FROM users WHERE id = ?')
+    const user = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, profile_picture_url, created_at FROM users WHERE id = ?')
       .get(result.lastInsertRowid);
 
     res.status(201).json(user);
@@ -376,7 +414,7 @@ app.patch('/api/admin/users/:userId', verifyToken, requireAdmin, async (req, res
       db.prepare('UPDATE users SET is_admin = ? WHERE id = ?').run(isAdmin ? 1 : 0, userId);
     }
 
-    const user = db.prepare('SELECT id, username, is_admin, created_at FROM users WHERE id = ?').get(userId);
+    const user = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, profile_picture_url, created_at FROM users WHERE id = ?').get(userId);
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -462,7 +500,7 @@ app.delete('/api/admin/permissions/:permissionId', verifyToken, requireAdmin, (r
  */
 
 // PATCH /api/users/:userId/ha-person - Map app user to HA person entity
-app.patch('/api/users/:userId/ha-person', verifyToken, requireAdmin, (req, res) => {
+app.patch('/api/users/:userId/ha-person', verifyToken, requireAdmin, async (req, res) => {
   try {
     // Accept both camelCase (from frontend) and snake_case
     const haPersonEntityId = req.body.haPersonEntityId || req.body.ha_person_entity_id || null;
@@ -474,11 +512,32 @@ app.patch('/api/users/:userId/ha-person', verifyToken, requireAdmin, (req, res) 
       return res.status(404).json({ error: 'User not found' });
     }
 
-    // Update user with HA person mapping (allow null to remove mapping)
-    db.prepare('UPDATE users SET ha_person_entity_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      .run(haPersonEntityId, req.params.userId);
+    let profilePictureUrl = null;
 
-    const updated = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, created_at FROM users WHERE id = ?')
+    // If mapping to a HA person, fetch their picture
+    if (haPersonEntityId) {
+      try {
+        const { getHAPersons } = await import('./ha-integration.js');
+        const persons = await getHAPersons();
+        const person = persons.find(p => p.entity_id === haPersonEntityId);
+        
+        if (person && person.picture) {
+          profilePictureUrl = person.picture;
+          console.log(`[INFO] Found profile picture for ${haPersonEntityId}: ${profilePictureUrl}`);
+        } else {
+          console.log(`[WARN] No picture found for HA person ${haPersonEntityId}`);
+        }
+      } catch (error) {
+        console.error(`[ERROR] Failed to fetch HA person picture: ${error.message}`);
+        // Continue anyway, just won't have picture
+      }
+    }
+
+    // Update user with HA person mapping and optional picture (allow null to remove mapping)
+    db.prepare('UPDATE users SET ha_person_entity_id = ?, profile_picture_url = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      .run(haPersonEntityId, profilePictureUrl, req.params.userId);
+
+    const updated = db.prepare('SELECT id, username, is_admin, ha_person_entity_id, profile_picture_url, created_at FROM users WHERE id = ?')
       .get(req.params.userId);
 
     const personStr = haPersonEntityId ? `HA person ${haPersonEntityId}` : 'no person';

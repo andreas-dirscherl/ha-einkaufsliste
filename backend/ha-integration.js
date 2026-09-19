@@ -403,6 +403,7 @@ export async function getHAPersons() {
         entity_id: state.entity_id,
         friendly_name: state.attributes.friendly_name || state.entity_id,
         icon: state.attributes.icon || 'mdi:account',
+        picture: state.attributes.picture || null, // Extract profile picture URL
         state: state.state
       }));
 
