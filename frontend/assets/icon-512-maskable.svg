@@ -1,0 +1,20 @@
+<svg viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- Safe zone: content should fit within center 80% for maskable icons -->
+  <!-- Background circle for maskable icon -->
+  <circle cx="256" cy="256" r="256" fill="#06b6d4"/>
+  
+  <!-- Shopping cart icon - centered and scaled down for maskable -->
+  <g transform="translate(256, 256)">
+    <!-- Cart body -->
+    <path d="M -65 -32 L -58 48 Q -58 58 -48 58 L 74 58 Q 84 58 84 48 L 96 -32 Z" 
+          fill="none" stroke="white" stroke-width="7" stroke-linejoin="round" stroke-linecap="round"/>
+    
+    <!-- Cart handle -->
+    <path d="M -58 -32 Q 0 -74 58 -32" 
+          fill="none" stroke="white" stroke-width="7" stroke-linecap="round"/>
+    
+    <!-- Wheels -->
+    <circle cx="-29" cy="58" r="8" fill="white"/>
+    <circle cx="45" cy="58" r="8" fill="white"/>
+  </g>
+</svg>

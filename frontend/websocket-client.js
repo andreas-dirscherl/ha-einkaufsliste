@@ -112,6 +112,19 @@ export class WebSocketClient {
         });
         break;
 
+      case 'location-changed':
+        // User location change (zone/area change)
+        console.log(`[LOCATION] ${message.username || 'User'} moved to ${message.currentZone}`);
+        this.emit('location-change', {
+          userId: message.userId,
+          previousZone: message.previousZone,
+          currentZone: message.currentZone,
+          recommendedListId: message.recommendedListId,
+          recommendedListName: message.recommendedListName,
+          timestamp: message.timestamp
+        });
+        break;
+
       default:
         console.warn('Unknown message type:', type);
     }

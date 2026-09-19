@@ -115,6 +115,19 @@ async function queueOfflineRequest(request) {
 
   await db.add('pending-requests', offlineRequest);
   console.log('Offline request queued:', offlineRequest);
+  
+  // Register background sync to process offline requests when online
+  if ('serviceWorkerContainer' in navigator) {
+    try {
+      const registration = await self.registration;
+      if ('sync' in registration) {
+        await registration.sync.register('sync-offline-requests');
+        console.log('Background sync registered');
+      }
+    } catch (error) {
+      console.log('Background sync not available:', error);
+    }
+  }
 }
 
 /**
@@ -207,6 +220,11 @@ function removeFromStore(objectStore, key) {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  
+  // Handle push notifications from client
+  if (event.data && event.data.type === 'SHOW_NOTIFICATION') {
+    self.registration.showNotification(event.data.title, event.data.options);
   }
 });
 

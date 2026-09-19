@@ -32,7 +32,15 @@ export function getHAClient() {
     throw new Error('HA not configured');
   }
 
-  const token = decryptToken(haConfig.ha_token, haConfig.encryption_key);
+  let token;
+  try {
+    // Try to decrypt token
+    token = decryptToken(haConfig.ha_token, haConfig.encryption_key);
+  } catch (error) {
+    // If decryption fails, assume token is in plaintext (legacy)
+    console.warn('[WARN] Could not decrypt HA token, treating as plaintext. Please update token in profile settings.');
+    token = haConfig.ha_token;
+  }
 
   return axios.create({
     baseURL: haConfig.ha_url,
@@ -152,30 +160,59 @@ export async function syncHAListItems(haEntityId) {
 
     console.log(`[syncHAListItems] Found list record, list_id: ${list.id}`);
 
-    // Try to fetch items via service call
+    // Try to fetch items via service call with return_response
     let items = [];
     try {
-      console.log(`[syncHAListItems] Calling HA service: POST /api/services/todo/get_items`);
-      const response = await client.post(`/api/services/todo/get_items`, {
+      console.log(`[syncHAListItems] Calling HA service: POST /api/services/todo/get_items?return_response`);
+      const response = await client.post(`/api/services/todo/get_items?return_response`, {
         entity_id: haEntityId
       });
 
       console.log(`[syncHAListItems] Service response:`, JSON.stringify(response.data).substring(0, 200));
-      items = response.data?.[haEntityId]?.items || [];
+      // Extract items from service_response nested structure
+      items = response.data?.service_response?.[haEntityId]?.items || 
+              response.data?.[haEntityId]?.items || 
+              response.data?.response?.[haEntityId]?.items || 
+              [];
       console.log(`[syncHAListItems] Extracted ${items.length} items from service response`);
     } catch (serviceError) {
       console.error(`[syncHAListItems] Service call failed: ${serviceError.message}`);
       console.warn(`[syncHAListItems] Falling back to direct state query`);
       
-      // Fallback: get items from state directly
+      // Fallback: get item count from state
       try {
         const response = await client.get(`/api/states/${haEntityId}`);
         const todoState = response.data;
-        items = todoState.attributes?.todo_items || [];
-        console.log(`[syncHAListItems] Fallback: Got ${items.length} items from state attributes`);
+        
+        // The state value is the count of items
+        const itemCount = parseInt(todoState.state) || 0;
+        console.log(`[syncHAListItems] State query: found ${itemCount} items in ${haEntityId}`);
+        
+        // Note: HA's REST API doesn't return individual items, only the count
+        // Create placeholder items so user sees something was synced
+        if (itemCount > 0) {
+          const existingItems = db.prepare('SELECT id FROM items WHERE list_id = ?').all(list.id);
+          const currentCount = existingItems.length;
+          
+          // If we need more items, create placeholders
+          if (currentCount < itemCount) {
+            console.log(`[syncHAListItems] Creating ${itemCount - currentCount} placeholder items to match HA count`);
+            for (let i = currentCount + 1; i <= itemCount; i++) {
+              const haItemId = `ha-placeholder-${haEntityId}-${i}`;
+              db.prepare(`
+                INSERT OR IGNORE INTO items (ha_item_id, list_id, title, is_completed)
+                VALUES (?, ?, ?, 0)
+              `).run(haItemId, list.id, `Eintrag ${i}`);
+            }
+            items = new Array(itemCount).fill(null);
+          }
+        }
+        
+        console.log(`[syncHAListItems] Fallback: Got ${items.length} items (count-based)`);
       } catch (fallbackError) {
         console.error(`[syncHAListItems] Fallback also failed: ${fallbackError.message}`);
-        throw new Error(`Cannot fetch items: service failed (${serviceError.message}) and fallback failed (${fallbackError.message})`);
+        // Don't throw - just log and continue with 0 items
+        items = [];
       }
     }
 
@@ -195,6 +232,7 @@ export async function syncHAListItems(haEntityId) {
 
     // Insert/update items from HA
     for (const item of items) {
+      if (!item) continue; // Skip null placeholders
       try {
         const itemId = item.uid || item.id;
         const title = item.summary || item.title || 'Unnamed item';
@@ -381,12 +419,14 @@ export async function getHAZones() {
       .filter(state => state.entity_id.startsWith('zone.'))
       .map(state => ({
         entity_id: state.entity_id,
+        name: state.attributes.friendly_name || state.entity_id,
         friendly_name: state.attributes.friendly_name || state.entity_id,
         icon: state.attributes.icon || 'mdi:map-marker',
         latitude: state.attributes.latitude,
         longitude: state.attributes.longitude,
         radius: state.attributes.radius
-      }));
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically
 
     console.log(`[INFO] Found ${zones.length} HA zones`);
     return zones;

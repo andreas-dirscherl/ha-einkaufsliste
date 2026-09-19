@@ -243,6 +243,66 @@ function applyMigrations() {
     CREATE INDEX IF NOT EXISTS idx_zone_mappings_list_id ON zone_mappings(list_id);
     CREATE INDEX IF NOT EXISTS idx_zone_mappings_zone_entity ON zone_mappings(zone_entity_id);
   `);
+
+  // Migration 3: Create categories table for custom category tags
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS categories (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Migration 4: Create category_zones table for mapping categories to HA zones
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS category_zones (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      category_id INTEGER NOT NULL,
+      zone_entity_id TEXT NOT NULL,
+      zone_name TEXT NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (category_id) REFERENCES categories(id) ON DELETE CASCADE,
+      UNIQUE(category_id, zone_entity_id)
+    )
+  `);
+
+  // Create indices for category zones
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_category_zones_category_id ON category_zones(category_id);
+    CREATE INDEX IF NOT EXISTS idx_category_zones_zone_entity ON category_zones(zone_entity_id);
+  `);
+
+  // Migration 5: Add category_id column to lists table
+  try {
+    db.prepare('ALTER TABLE lists ADD COLUMN category_id INTEGER').run();
+  } catch (e) {
+    // Column already exists, skip
+  }
+
+  try {
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_lists_category_id ON lists(category_id)').run();
+  } catch (e) {
+    // Index already exists, skip
+  }
+
+  // Migration 6: Add 2FA columns to users table
+  try {
+    db.prepare('ALTER TABLE users ADD COLUMN two_factor_secret TEXT').run();
+  } catch (e) {
+    // Column already exists, skip
+  }
+
+  try {
+    db.prepare('ALTER TABLE users ADD COLUMN two_factor_enabled BOOLEAN DEFAULT 0').run();
+  } catch (e) {
+    // Column already exists, skip
+  }
+
+  try {
+    db.prepare('ALTER TABLE users ADD COLUMN backup_codes TEXT').run();
+  } catch (e) {
+    // Column already exists, skip
+  }
 }
 
 /**

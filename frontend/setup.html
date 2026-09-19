@@ -7,20 +7,74 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <style>
     body {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      min-height: 100vh;
+    }
+    
+    .form-section {
+      border-bottom: 1px solid #e5e7eb;
+      padding-bottom: 1.5rem;
+    }
+    
+    .form-section:last-of-type {
+      border-bottom: none;
+    }
+    
+    input, textarea {
+      transition: all 0.2s ease;
+    }
+    
+    input:focus, textarea:focus {
+      border-color: #3b82f6 !important;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    }
+    
+    .btn-primary {
+      background: #2563eb;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-primary:hover:not(:disabled) {
+      background: #1d4ed8;
+    }
+    
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+    
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      transition: all 0.2s ease;
+    }
+    
+    .btn-secondary:hover:not(:disabled) {
+      background: #e5e7eb;
     }
   </style>
 </head>
-<body class="h-screen flex items-center justify-center p-4">
-  <div class="w-full max-w-md">
-    <div class="bg-white rounded-lg shadow-2xl p-8">
-      <h1 class="text-3xl font-bold mb-2 text-center text-gray-800">🛒 Einkaufsliste</h1>
-      <p class="text-center text-gray-600 mb-8">Erste Einrichtung</p>
+<body class="flex items-center justify-center p-4 py-8">
+  <div class="w-full max-w-lg">
+    <!-- Header -->
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold text-gray-800 mb-2">Einkaufsliste</h1>
+      <p class="text-gray-600 text-lg" id="headerSubtitle">Erste Einrichtung</p>
+    </div>
 
-      <form id="setupForm" class="space-y-6">
-        <!-- Admin User Section -->
-        <div class="border-b pb-6">
-          <h2 class="text-lg font-semibold text-gray-700 mb-4">Admin Account</h2>
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-6 justify-center" id="tabs" style="display: none;">
+      <button class="px-6 py-2 rounded-lg font-medium transition" id="setupTab" onclick="switchTab('setup')" style="background: #2563eb; color: white;">Setup</button>
+      <button class="px-6 py-2 rounded-lg font-medium transition" id="loginTab" onclick="switchTab('login')" style="background: #f3f4f6; color: #374151;">Login</button>
+    </div>
+
+    <!-- Main Card -->
+    <div class="bg-white rounded-xl shadow-lg p-8" id="setupCard">
+      <form id="setupForm" class="space-y-8">
+        
+        <!-- Admin Section -->
+        <div class="form-section">
+          <h2 class="text-lg font-semibold text-gray-800 mb-5">Admin Account</h2>
           
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Benutzername</label>
@@ -29,7 +83,7 @@
               id="adminUsername" 
               name="adminUsername"
               required 
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-transparent"
               placeholder="z.B. admin"
             >
           </div>
@@ -42,15 +96,15 @@
               name="adminPassword"
               required 
               minlength="8"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-transparent"
               placeholder="••••••••"
             >
           </div>
         </div>
 
         <!-- Home Assistant Section -->
-        <div>
-          <h2 class="text-lg font-semibold text-gray-700 mb-4">🏠 Home Assistant</h2>
+        <div class="form-section">
+          <h2 class="text-lg font-semibold text-gray-800 mb-5">Home Assistant Verbindung</h2>
           
           <div class="mb-4">
             <label class="block text-sm font-medium text-gray-700 mb-2">Home Assistant URL</label>
@@ -59,10 +113,10 @@
               id="haUrl" 
               name="haUrl"
               required 
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-transparent"
               placeholder="https://homeassistant.local:8123"
             >
-            <p class="text-xs text-gray-500 mt-1">Z.B.: https://192.168.1.100:8123</p>
+            <p class="text-xs text-gray-500 mt-2">Z.B.: https://192.168.1.100:8123</p>
           </div>
 
           <div>
@@ -72,35 +126,41 @@
               name="haToken"
               required 
               rows="4"
-              class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent font-mono text-sm"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-transparent font-mono text-sm resize-none"
               placeholder="eyJ0eXAiOiJKV1QiLCJhbGc..."
             ></textarea>
-            <p class="text-xs text-gray-500 mt-1">
+            <p class="text-xs text-gray-500 mt-2">
               Token in Home Assistant: Profil → Sicherheit → Langlebige Zugriffstoken
             </p>
           </div>
         </div>
 
-        <!-- Buttons -->
-        <div class="flex gap-3 pt-6">
+        <!-- Actions -->
+        <div class="flex gap-3 pt-4">
           <button 
             type="button" 
             id="testBtn"
-            class="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 font-medium"
+            class="btn-secondary flex-1 px-4 py-3 rounded-lg hover:bg-gray-300 font-medium text-sm"
           >
-            🧪 Verbindung testen
+            Verbindung testen
           </button>
           <button 
             type="submit" 
             id="submitBtn"
-            class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium"
+            class="btn-primary flex-1 px-4 py-3 text-white rounded-lg font-medium text-sm"
           >
-            Complete Setup
+            Einrichtung abschließen
           </button>
         </div>
 
-        <div id="message" class="hidden p-4 rounded-lg text-sm"></div>
+        <!-- Message -->
+        <div id="message" class="hidden p-4 rounded-lg text-sm font-medium"></div>
       </form>
+    </div>
+
+    <!-- Footer Info -->
+    <div class="text-center mt-8">
+      <p class="text-gray-600 text-sm">Dieser Setup-Assistent konfiguriert dein Einkaufslisten-System mit Home Assistant Integration.</p>
     </div>
   </div>
 
@@ -110,19 +170,99 @@
     const submitBtn = document.getElementById('submitBtn');
     const messageEl = document.getElementById('message');
 
+    let currentTab = 'setup';
+
     function showMessage(text, type = 'info') {
       messageEl.textContent = text;
-      messageEl.className = `p-4 rounded-lg text-sm ${
-        type === 'success' ? 'bg-green-100 text-green-700' :
-        type === 'error' ? 'bg-red-100 text-red-700' :
-        'bg-blue-100 text-blue-700'
+      messageEl.className = `p-4 rounded-lg text-sm font-medium ${
+        type === 'success' ? 'bg-green-100 text-green-800' :
+        type === 'error' ? 'bg-red-100 text-red-800' :
+        'bg-blue-100 text-blue-800'
       }`;
     }
 
-    testBtn.addEventListener('click', async () => {
+    // Check if DB is already initialized
+    async function checkIfInitialized() {
+      try {
+        const response = await fetch('/api/setup/status');
+        const data = await response.json();
+        
+        if (data.setupComplete) {
+          // Setup already done, only allow login
+          document.getElementById('tabs').style.display = 'flex';
+          document.getElementById('headerSubtitle').textContent = 'Anmelden';
+          document.getElementById('setupTab').disabled = true;
+          document.getElementById('setupTab').style.opacity = '0.5';
+          document.getElementById('setupTab').style.cursor = 'not-allowed';
+          document.getElementById('setupTab').onclick = (e) => e.preventDefault();
+          
+          // Auto-switch to login tab
+          switchTab('login');
+          return true;
+        } else {
+          // First time setup
+          document.getElementById('tabs').style.display = 'flex';
+          document.getElementById('headerSubtitle').textContent = 'Erste Einrichtung';
+          return false;
+        }
+      } catch (error) {
+        console.warn('Could not check setup status:', error);
+        return false;
+      }
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      const card = document.getElementById('setupCard');
+      const setupTab = document.getElementById('setupTab');
+      const loginTab = document.getElementById('loginTab');
+      
+      if (tab === 'setup') {
+        card.innerHTML = document.getElementById('setupForm').parentElement.innerHTML;
+        setupTab.style.background = '#2563eb';
+        setupTab.style.color = 'white';
+        loginTab.style.background = '#f3f4f6';
+        loginTab.style.color = '#374151';
+        
+        // Re-attach event listeners
+        document.getElementById('testBtn').addEventListener('click', testConnection);
+        document.getElementById('setupForm').addEventListener('submit', submitSetup);
+      } else {
+        // Login tab
+        card.innerHTML = `
+          <h2 class="text-lg font-semibold text-gray-800 mb-5">Anmelden</h2>
+          <form id="loginForm" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Benutzername</label>
+              <input type="text" id="loginUsername" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-transparent" placeholder="z.B. admin">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-2">Passwort</label>
+              <input type="password" id="loginPassword" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-transparent" placeholder="••••••••">
+            </div>
+            <div class="flex gap-3 pt-4">
+              <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">
+                Anmelden
+              </button>
+            </div>
+            <div id="loginMessage" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+          </form>
+        `;
+        
+        setupTab.style.background = '#f3f4f6';
+        setupTab.style.color = '#374151';
+        loginTab.style.background = '#2563eb';
+        loginTab.style.color = 'white';
+        
+        document.getElementById('loginForm').addEventListener('submit', submitLogin);
+      }
+    }
+
+    async function testConnection() {
       try {
         testBtn.disabled = true;
-        testBtn.textContent = '⏳ Teste...';
+        const originalText = testBtn.textContent;
+        testBtn.textContent = 'Teste...';
         
         const haUrl = document.getElementById('haUrl').value.trim();
         const haToken = document.getElementById('haToken').value.trim();
@@ -137,24 +277,25 @@
         });
 
         if (response.ok) {
-          showMessage('Connection to Home Assistant successful!', 'success');
+          showMessage('Verbindung zu Home Assistant erfolgreich!', 'success');
         } else {
-          showMessage('Connection failed. Check URL and token.', 'error');
+          showMessage('Verbindung fehlgeschlagen. URL und Token überprüfen.', 'error');
         }
       } catch (error) {
-        showMessage(`❌ Fehler: ${error.message}`, 'error');
+        showMessage(`Fehler: ${error.message}`, 'error');
       } finally {
         testBtn.disabled = false;
-        testBtn.textContent = '🧪 Verbindung testen';
+        testBtn.textContent = 'Verbindung testen';
       }
-    });
+    }
 
-    form.addEventListener('submit', async (e) => {
+    async function submitSetup(e) {
       e.preventDefault();
 
       try {
         submitBtn.disabled = true;
-        submitBtn.textContent = '⏳ Setup lädt...';
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = 'Wird eingerichtet...';
 
         const data = {
           adminUsername: document.getElementById('adminUsername').value.trim(),
@@ -172,25 +313,166 @@
         const result = await response.json();
 
         if (!response.ok) {
-          showMessage(`Error: ${result.error}`, 'error');
+          showMessage(`Fehler: ${result.error}`, 'error');
           return;
         }
 
-        // Save token and redirect
         localStorage.setItem('token', result.token);
         localStorage.setItem('user', JSON.stringify(result.user));
         
-        showMessage('Setup completed! Redirecting...', 'success');
+        showMessage('Einrichtung abgeschlossen! Weiterleitung...', 'success');
         setTimeout(() => {
           window.location.href = '/';
         }, 1500);
       } catch (error) {
-        showMessage(`❌ Fehler: ${error.message}`, 'error');
+        showMessage(`Fehler: ${error.message}`, 'error');
       } finally {
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Setup completed';
+        submitBtn.textContent = 'Einrichtung abschließen';
       }
-    });
+    }
+
+    async function submitLogin(e) {
+      e.preventDefault();
+      try {
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Wird angemeldet...';
+
+        const username = document.getElementById('loginUsername').value;
+        const password = document.getElementById('loginPassword').value;
+
+        const response = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          const loginMessage = document.getElementById('loginMessage');
+          loginMessage.textContent = `Fehler: ${result.error}`;
+          loginMessage.className = 'p-4 rounded-lg text-sm font-medium bg-red-100 text-red-800';
+          loginMessage.classList.remove('hidden');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Anmelden';
+          return;
+        }
+
+        // Check if 2FA is required
+        if (result.requiresTwoFA && result.tempToken) {
+          // Show 2FA verification form
+          show2FAVerification(result.tempToken);
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Anmelden';
+          return;
+        }
+
+        // Standard login (no 2FA)
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        
+        const loginMessage = document.getElementById('loginMessage');
+        loginMessage.textContent = 'Anmeldung erfolgreich! Weiterleitung...';
+        loginMessage.className = 'p-4 rounded-lg text-sm font-medium bg-green-100 text-green-800';
+        
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      } catch (error) {
+        const loginMessage = document.getElementById('loginMessage');
+        loginMessage.textContent = `Fehler: ${error.message}`;
+        loginMessage.className = 'p-4 rounded-lg text-sm font-medium bg-red-100 text-red-800';
+      }
+    }
+
+    function show2FAVerification(tempToken) {
+      const card = document.getElementById('setupCard');
+      card.innerHTML = `
+        <h2 class="text-lg font-semibold text-gray-800 mb-5">2FA Verifikation</h2>
+        <p class="text-sm text-gray-600 mb-5">Bitte geben Sie den 6-stelligen Code aus Ihrer Authentifizierungs-App ein.</p>
+        <form id="twoFAForm" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-2">2FA Code</label>
+            <input 
+              type="text" 
+              id="twoFACode" 
+              required 
+              maxlength="6"
+              pattern="[0-9]{6}"
+              class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-transparent text-center text-2xl tracking-widest"
+              placeholder="000000"
+              inputmode="numeric"
+            >
+          </div>
+          <div class="flex gap-3 pt-4">
+            <button type="submit" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-medium text-sm">
+              Verifizieren
+            </button>
+            <button type="button" class="flex-1 px-4 py-3 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 font-medium text-sm" onclick="location.reload()">
+              Abbrechen
+            </button>
+          </div>
+          <div id="twoFAMessage" class="hidden p-4 rounded-lg text-sm font-medium"></div>
+        </form>
+      `;
+
+      document.getElementById('twoFAForm').addEventListener('submit', (e) => {
+        submitTwoFAVerification(e, tempToken);
+      });
+    }
+
+    async function submitTwoFAVerification(e, tempToken) {
+      e.preventDefault();
+      try {
+        const submitBtn = e.target.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Wird verifiziert...';
+
+        const code = document.getElementById('twoFACode').value;
+
+        const response = await fetch('/api/2fa/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tempToken, code })
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+          const message = document.getElementById('twoFAMessage');
+          message.textContent = `Fehler: ${result.error}`;
+          message.className = 'p-4 rounded-lg text-sm font-medium bg-red-100 text-red-800';
+          message.classList.remove('hidden');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Verifizieren';
+          return;
+        }
+
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('user', JSON.stringify(result.user));
+        
+        const message = document.getElementById('twoFAMessage');
+        message.textContent = 'Verifizierung erfolgreich! Weiterleitung...';
+        message.className = 'p-4 rounded-lg text-sm font-medium bg-green-100 text-green-800';
+        
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1000);
+      } catch (error) {
+        const message = document.getElementById('twoFAMessage');
+        message.textContent = `Fehler: ${error.message}`;
+        message.className = 'p-4 rounded-lg text-sm font-medium bg-red-100 text-red-800';
+      }
+    }
+
+    // Event listeners for setup form
+    testBtn.addEventListener('click', testConnection);
+    form.addEventListener('submit', submitSetup);
+
+    // Check if already initialized
+    checkIfInitialized();
   </script>
 </body>
 </html>

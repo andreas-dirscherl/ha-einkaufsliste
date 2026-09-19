@@ -224,7 +224,7 @@ export function broadcastToList(listId, message, excludeWs = null) {
   const subscribers = listSubscriptions.get(listId);
 
   subscribers.forEach(ws => {
-    if (ws.readyState === WebSocket.OPEN && ws !== excludeWs) {
+    if (ws.readyState === 1 && ws !== excludeWs) { // 1 = OPEN
       ws.send(payload);
     }
   });
@@ -240,7 +240,7 @@ export function broadcastToUser(userId, message) {
   const connections = userConnections.get(userId);
 
   connections.forEach(ws => {
-    if (ws.readyState === WebSocket.OPEN) {
+    if (ws.readyState === 1) { // 1 = OPEN
       ws.send(payload);
     }
   });

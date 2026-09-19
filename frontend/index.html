@@ -6,282 +6,291 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Einkaufsliste">
-  <meta name="theme-color" content="#667eea">
+  <meta name="theme-color" content="#06b6d4">
   <link rel="manifest" href="/manifest.json">
   <link rel="icon" type="image/svg+xml" href="/assets/icon-192.svg">
   <link rel="apple-touch-icon" href="/assets/icon-192.svg">
   
   <title>Shopping List - Einkaufsliste</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css">
   
   <style>
     body {
-      background: #f8f9fa;
-      overflow-y: auto;
       -webkit-user-select: none;
       user-select: none;
     }
-    
-    .app-container {
-      max-width: 480px;
-      margin: 0 auto;
-      height: 100vh;
+
+    .app-wrapper {
       display: flex;
       flex-direction: column;
+      min-height: 100vh;
     }
 
-    .lists-container {
+    .main-content {
       flex: 1;
       overflow-y: auto;
+      padding: var(--spacing-lg);
+      padding-bottom: 140px;
+      max-width: 1024px;
+      margin: 0 auto;
+      width: 100%;
     }
 
-    .input-area {
-      padding-bottom: max(1rem, env(safe-area-inset-bottom));
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 400px;
+      text-align: center;
+      color: var(--text-secondary);
     }
 
-    /* Smooth animations */
-    .item-enter {
-      animation: slideIn 0.3s ease-out;
+    .empty-state-text {
+      font-size: 1.125rem;
+      margin-bottom: var(--spacing-md);
+      color: var(--text-primary);
     }
 
-    @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
+    .input-footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--color-gray-200);
+      padding: var(--spacing-md) var(--spacing-lg);
+      padding-bottom: max(var(--spacing-md), env(safe-area-inset-bottom));
+      z-index: 20;
+      box-shadow: var(--shadow-md);
+    }
+
+    .input-footer-content {
+      max-width: 1024px;
+      margin: 0 auto;
+      display: flex;
+      gap: var(--spacing-md);
+    }
+
+    .input-footer-content input {
+      flex: 1;
+      padding: var(--spacing-md);
+      border: 1px solid var(--color-gray-300);
+      border-radius: var(--radius-md);
+      background: var(--bg-surface);
+      color: var(--text-primary);
+    }
+
+    .input-footer-content button {
+      padding: var(--spacing-md) var(--spacing-lg);
+      min-width: 50px;
+    }
+
+    .lists-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+    }
+
+    @media (max-width: 768px) {
+      .lists-grid {
+        grid-template-columns: 1fr;
       }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
     }
 
-    .item-exit {
-      animation: slideOut 0.2s ease-out;
-    }
-
-    @keyframes slideOut {
-      from {
-        opacity: 1;
-        transform: translateX(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateX(100%);
-      }
-    }
-
-    /* Checked item styling */
-    .item-completed {
+    /* Theme Switcher */
+    .theme-btn {
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 0.5rem;
+      border-radius: var(--radius-md);
+      transition: all 0.2s ease;
       opacity: 0.6;
     }
 
-    .item-completed .item-text {
-      text-decoration: line-through;
-      color: #999;
+    .theme-btn:hover {
+      opacity: 1;
+      transform: scale(1.1);
     }
 
-    /* Offline indicator */
-    .offline-badge {
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      right: 20px;
-      max-width: calc(480px - 40px);
-      margin: 0 auto;
+    .theme-btn.active {
+      opacity: 1;
+      background: var(--color-primary);
+      color: white;
     }
 
-    /* Safe area padding for notches */
-    .safe-top {
-      padding-top: max(0.5rem, env(safe-area-inset-top));
-    }
-
-    .safe-bottom {
-      padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
-    }
-
-    /* Zone auto-select notification */
-    @keyframes slideIn {
+    /* Animations for notifications */
+    @keyframes slideUp {
       from {
-        transform: translateX(400px);
+        transform: translateX(-50%) translateY(20px);
         opacity: 0;
       }
       to {
-        transform: translateX(0);
+        transform: translateX(-50%) translateY(0);
         opacity: 1;
       }
     }
 
-    @keyframes slideOut {
+    @keyframes slideDown {
       from {
-        transform: translateX(0);
+        transform: translateX(-50%) translateY(0);
         opacity: 1;
       }
       to {
-        transform: translateX(400px);
+        transform: translateX(-50%) translateY(20px);
         opacity: 0;
       }
-    }
-
-    .animate-pulse {
-      animation: slideIn 0.3s ease-out, slideOut 4.7s ease-in 4s;
     }
   </style>
 </head>
-<body class="bg-gray-50">
-  <div id="app" class="app-container">
+<body>
+  <div class="app-wrapper">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-200 sticky top-0 z-10 safe-top">
-      <div class="px-4 py-3 flex items-center justify-between">
-        <h1 class="text-xl font-bold text-gray-800">🛒 Einkaufsliste</h1>
-        <button id="menuBtn" class="p-2 text-gray-600 hover:bg-gray-100 rounded-lg" title="Menü">
-          ⚙️
-        </button>
-      </div>
-
-      <!-- List selector -->
-      <div class="px-4 pb-3">
-        <select id="listSelector" class="w-full px-3 py-2 bg-white border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-purple-500">
-          <option value="">Wähle eine Liste...</option>
-        </select>
+    <header class="header">
+      <div class="header-content">
+        <h1 class="header-title">Einkaufsliste</h1>
+        <div class="header-actions">
+          <div class="header-menu-container">
+            <button class="header-menu-btn" id="headerMenuBtn" onclick="window.toggleHeaderMenu()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="header-menu-dropdown" id="headerMenuDropdown">
+              <div id="adminMenuSection" class="hidden">
+                <a href="/admin.html" class="header-menu-item" style="text-decoration: none;">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="1"></circle><path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m5.08 5.08l4.24 4.24M1 12h6m6 0h6M4.22 19.78l4.24-4.24m5.08-5.08l4.24-4.24"></path></svg>
+                  Admin Dashboard
+                </a>
+                <div class="header-menu-separator"></div>
+              </div>
+              <div style="padding: var(--spacing-sm) var(--spacing-md); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-gray-200); margin-bottom: var(--spacing-sm);">
+                <span style="font-size: 0.875rem; color: var(--text-secondary);">Design</span>
+                <div style="display: flex; gap: var(--spacing-xs); background: var(--bg-surface-alt); padding: var(--spacing-xs); border-radius: var(--radius-md);">
+                  <button id="themeBtnLight" class="theme-btn active" data-theme="light" title="Hell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg></button>
+                  <button id="themeBtnDark" class="theme-btn" data-theme="dark" title="Dunkel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
+                  <button id="themeBtnSystem" class="theme-btn" data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></button>
+                </div>
+              </div>
+              <!-- User Section -->
+              <div style="padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid var(--color-gray-200); margin-top: var(--spacing-sm);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                    <span id="userInitial">—</span>
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div id="userDisplayLabel" style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Benutzer</div>
+                  </div>
+                </div>
+                <button class="header-menu-item" onclick="window.openProfileModal()" style="width: 100%; color: var(--text-primary); border-bottom: 1px solid var(--color-gray-200); padding-bottom: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  Profil bearbeiten
+                </button>
+                <button class="header-menu-item" onclick="window.logoutUser()" style="width: 100%; color: var(--color-error);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14"></path><polyline points="16 8 16 4 8 4 8 4"></polyline><line x1="16" y1="12" x2="2" y2="12"></line></svg>
+                  Abmelden
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
-    <!-- Main content -->
-    <div class="lists-container">
-      <div id="emptyState" class="flex flex-col items-center justify-center h-full text-center p-8">
-        <div class="text-6xl mb-4">�</div>
-        <p class="text-gray-500">Wähle eine Liste aus Home Assistant</p>
+    <!-- Main Content -->
+    <main class="main-content">
+      <!-- Lists View -->
+      <div id="listsView">
+        <div id="listsGrid" class="lists-grid"></div>
+        <div id="emptyListsState" class="empty-state hidden">
+          <div class="empty-state-text">Keine Listen verfügbar</div>
+          <p class="text-sm">Erstelle eine Liste in Home Assistant und sie wird hier angezeigt.</p>
+        </div>
       </div>
 
-      <div id="listContent" class="hidden">
-        <div id="itemsList" class="divide-y"></div>
+      <!-- Items View -->
+      <div id="itemsView" class="hidden">
+        <div class="mb-lg flex items-center justify-between">
+          <h2 id="currentListTitle" class="text-xl font-semibold"></h2>
+          <button id="backBtn" class="btn btn-secondary">Zurück</button>
+        </div>
+        <div id="itemsList" class="items-list"></div>
+        <div id="emptyItemsState" class="empty-state hidden">
+          <div class="empty-state-text">Keine Einträge</div>
+          <p class="text-sm">Füge einen Eintrag hinzu um zu beginnen.</p>
+        </div>
       </div>
-    </div>
+    </main>
 
-    <!-- Input area -->
-    <div class="input-area bg-white border-t border-gray-200 sticky bottom-0">
-      <div class="px-4 py-3 flex gap-2">
+    <!-- Input Footer -->
+    <div id="inputFooter" class="input-footer hidden">
+      <div class="input-footer-content">
         <input 
           type="text" 
           id="itemInput" 
           placeholder="Neuen Artikel hinzufügen..."
-          class="flex-1 px-4 py-2 bg-gray-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:bg-white"
           autocomplete="off"
         >
-        <button 
-          id="addBtn" 
-          class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 font-medium transition"
-        >
-          +
-        </button>
+        <button id="addBtn" class="btn btn-primary">Hinzu</button>
       </div>
-
-      <!-- Offline indicator -->
-      <div id="offlineBadge" class="hidden mx-4 mb-3 p-2 bg-yellow-100 text-yellow-800 text-xs rounded-lg text-center">
-        📡 Offline - Änderungen werden später synchronisiert
-      </div>
-    </div>
-  </div>
-
-  <!-- Menu Modal -->
-  <div id="menuModal" class="hidden fixed inset-0 bg-black/50 z-50 flex items-end">
-    <div class="w-full bg-white rounded-t-2xl p-6 pb-8">
-      <h2 class="text-lg font-bold mb-4">Menü</h2>
-      
-      <div id="adminSection" class="mb-4 hidden pb-4 border-b border-gray-200">
-        <a href="/admin.html" class="w-full px-4 py-3 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 font-medium block text-center">
-          ⚙️ Admin Dashboard
-        </a>
-      </div>
-
-      <button id="logoutBtn" class="w-full px-4 py-3 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 font-medium">
-        🚪 Abmelden
-      </button>
     </div>
   </div>
 
   <script type="module">
     import WebSocketClient from './websocket-client.js';
+
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(err => {
+      navigator.serviceWorker.register('/sw.js').then(registration => {
+        console.log('Service Worker registered');
+        
+        // Fallback: Trigger sync when online if Background Sync not available
+        window.addEventListener('online', async () => {
+          console.log('[PWA] Back online - attempting to sync offline requests');
+          if ('sync' in registration) {
+            try {
+              await registration.sync.register('sync-offline-requests');
+              console.log('[PWA] Background sync registered');
+            } catch (error) {
+              console.log('[PWA] Background sync registration failed:', error);
+            }
+          }
+        });
+      }).catch(err => {
         console.log('Service Worker registration failed:', err);
       });
     }
+    
+    // Log online/offline status
+    window.addEventListener('online', () => {
+      console.log('[PWA] App is back online');
+    });
+    
+    window.addEventListener('offline', () => {
+      console.log('[PWA] App is offline - requests will be queued');
+    });
 
     // App State
     let currentList = null;
-    let isOnline = navigator.onLine;
+    let allLists = [];
     let token = localStorage.getItem('token');
-    let wsClient = null; // WebSocket client for real-time sync
+    let wsClient = null;
 
-    const app = {
-      $: (id) => document.getElementById(id),
-      $all: (sel) => document.querySelectorAll(sel),
-      addClass: (el, cls) => el.classList.add(cls),
-      removeClass: (el, cls) => el.classList.remove(cls),
-      hasClass: (el, cls) => el.classList.contains(cls),
-    };
-
-    // Check if authenticated
+    const $ = (id) => document.getElementById(id);
+    
+    // Check auth
     if (!token) {
       window.location.href = '/setup.html';
     }
 
-    // Get user info
     const userStr = localStorage.getItem('user');
     const user = userStr ? JSON.parse(userStr) : null;
-    
-    // Show admin section if user is admin
-    if (user?.isAdmin) {
-      document.getElementById('adminSection').classList.remove('hidden');
-    }
+    window.user = user; // Make globally accessible
 
-    // Initialize WebSocket for real-time sync
-    async function initWebSocket() {
-      if (wsClient) return;
-      wsClient = new WebSocketClient(token, user?.id);
-      
-      try {
-        await wsClient.connect();
-
-        // Listen for item changes
-        wsClient.on('item-change', handleWebSocketItemChange);
-        wsClient.on('disconnected', () => {
-          console.log('WebSocket disconnected, app still works offline');
-        });
-      } catch (error) {
-        console.warn('WebSocket connection failed, using polling mode:', error);
-        // App still works, just without real-time sync
-      }
-    }
-
-    // Handle incoming WebSocket item changes
-    function handleWebSocketItemChange(changeData) {
-      // Only process if we're viewing the affected list
-      if (changeData.listId !== currentList) return;
-
-      // Don't process our own changes (avoid duplicate)
-      if (changeData.userId === user?.id) return;
-
-      // Update UI based on action
-      switch (changeData.type) {
-        case 'item-created':
-          addItemToUI(changeData.item);
-          break;
-        case 'item-updated':
-          updateItemInUI(changeData.item);
-          break;
-        case 'item-deleted':
-          removeItemFromUI(changeData.itemId);
-          break;
-      }
-
-      console.log(`[UPDATE] Real-time update from user ${changeData.userId}:`, changeData.type);
-    }
-
-    // API calls
-    async function apiCall(method, url, body = null) {
+    // API Call
+    window.apiCall = async function apiCall(method, url, body = null) {
       const options = {
         method,
         headers: { 
@@ -289,11 +298,19 @@
           'Content-Type': 'application/json'
         }
       };
-      
       if (body) options.body = JSON.stringify(body);
 
       try {
         const response = await fetch(url, options);
+        
+        // Token auto-renewal: check for new token in response header
+        const newToken = response.headers.get('x-new-token');
+        if (newToken) {
+          localStorage.setItem('token', newToken);
+          window.token = newToken;
+          console.log('[TOKEN] Auto-renewed for next 30 days');
+        }
+        
         if (response.status === 401) {
           localStorage.removeItem('token');
           window.location.href = '/setup.html';
@@ -304,109 +321,528 @@
         console.error('API Error:', error);
         return null;
       }
+    };
+
+    // Initialize WebSocket
+    async function initWebSocket() {
+      if (wsClient) return;
+      wsClient = new WebSocketClient(token, user?.id);
+      
+      try {
+        await wsClient.connect();
+        wsClient.on('item-change', handleWebSocketItemChange);
+        wsClient.on('location-change', handleLocationChange);
+      } catch (error) {
+        console.warn('WebSocket failed:', error);
+      }
     }
 
-    // Load lists
-    async function loadLists() {
+    function handleWebSocketItemChange(changeData) {
+      if (changeData.listId !== currentList) return;
+
+      // If sender is current user, skip (we already updated our UI)
+      if (changeData.userId === user?.id && changeData.source !== 'ha-sync') return;
+
+      switch (changeData.type) {
+        case 'item-created':
+          addItemToUI(changeData.item);
+          break;
+        case 'item-updated':
+          updateItemInUI(changeData.item);
+          break;
+        case 'item-deleted':
+          removeItemFromUI(changeData.itemId);
+          break;
+        case 'list-updated':
+          // Full list update from HA sync or other users
+          handleFullListUpdate(changeData);
+          break;
+      }
+    }
+
+    // Handle full list update (e.g., from HA sync)
+    async function handleFullListUpdate(changeData) {
+      if (!changeData.items || !Array.isArray(changeData.items)) {
+        console.log('[DEBUG] Invalid list update data');
+        return;
+      }
+      
+      console.log(`[SYNC] Received ${changeData.items.length} items from ${changeData.source || 'unknown'}`);
+      
+      const itemsList = $('itemsList');
+      if (!itemsList) return;
+
+      const currentElements = itemsList.querySelectorAll('[data-item-id]');
+      const currentMap = new Map(
+        Array.from(currentElements).map(el => [parseInt(el.dataset.itemId), el])
+      );
+
+      const incomingMap = new Map(
+        changeData.items.map(item => [parseInt(item.id), item])
+      );
+
+      // 1. Remove items that no longer exist in incoming data
+      for (const [id, element] of currentMap) {
+        if (!incomingMap.has(id)) {
+          console.log(`[SYNC] Removing item ${id}`);
+          element.remove();
+        }
+      }
+
+      // 2. Sort incoming items: active (is_completed=0) first, then completed
+      const sortedItems = changeData.items.sort((a, b) => {
+        if (a.is_completed === b.is_completed) {
+          return new Date(b.created_at) - new Date(a.created_at); // Newer first
+        }
+        return a.is_completed - b.is_completed; // Active items first
+      });
+
+      // 3. Process each item
+      const addedItems = [];
+      const updatedItems = [];
+
+      for (const item of sortedItems) {
+        const existingElement = currentMap.get(parseInt(item.id));
+        
+        if (!existingElement) {
+          // New item - add it
+          console.log(`[SYNC] Adding new item: ${item.title}`);
+          addedItems.push(item);
+        } else {
+          // Existing item - check if changed
+          const checkbox = existingElement.querySelector('input[type="checkbox"]');
+          const titleEl = existingElement.querySelector('.item-title');
+          
+          const wasCompleted = existingElement.classList.contains('completed');
+          const isNowCompleted = item.is_completed ? true : false;
+          const titleChanged = titleEl?.textContent?.trim() !== item.title?.trim();
+
+          if (wasCompleted !== isNowCompleted || titleChanged) {
+            console.log(`[SYNC] Updating item ${item.id}: completed=${isNowCompleted}, title="${item.title}"`);
+            updatedItems.push({ element: existingElement, item, wasCompleted });
+          }
+        }
+      }
+
+      // 4. Apply updates to existing items
+      for (const { element, item, wasCompleted } of updatedItems) {
+        const checkbox = element.querySelector('input[type="checkbox"]');
+        const titleEl = element.querySelector('.item-title');
+        
+        if (checkbox) {
+          checkbox.checked = item.is_completed ? true : false;
+        }
+        if (titleEl) {
+          titleEl.textContent = item.title;
+        }
+        
+        // Update completion status
+        if (item.is_completed && !wasCompleted) {
+          element.classList.add('completed');
+          console.log(`[SYNC] Marked as completed: ${item.title}`);
+        } else if (!item.is_completed && wasCompleted) {
+          element.classList.remove('completed');
+          console.log(`[SYNC] Marked as active: ${item.title}`);
+        }
+      }
+
+      // 5. Add new items in correct order
+      for (const item of addedItems) {
+        addItemToUI(item);
+      }
+
+      // 6. Re-sort all items to ensure correct order
+      resortItems();
+      
+      console.log(`[SYNC] Update complete: ${updatedItems.length} updated, ${addedItems.length} added`);
+    }
+
+    // Resort items by completion status (active first, then completed)
+    function resortItems() {
+      const itemsList = $('itemsList');
+      if (!itemsList) return;
+
+      const items = Array.from(itemsList.querySelectorAll('[data-item-id]'));
+      const activeItems = items.filter(el => !el.classList.contains('completed'));
+      const completedItems = items.filter(el => el.classList.contains('completed'));
+
+      // Clear and rebuild order
+      itemsList.innerHTML = '';
+      activeItems.forEach(item => itemsList.appendChild(item));
+      completedItems.forEach(item => itemsList.appendChild(item));
+    }
+
+    // Handle location change (zone/area update)
+    async function handleLocationChange(locationData) {
+      console.log(`[LOCATION-UPDATE] User moved: ${locationData.previousZone} → ${locationData.currentZone}`);
+
+      // Only process if this is the current user
+      if (locationData.userId !== user?.id) {
+        return;
+      }
+
+      // If a new list is recommended for the new zone
+      if (locationData.recommendedListId && locationData.currentZone !== 'unknown') {
+        console.log(`[LOCATION-UPDATE] Recommended list: ${locationData.recommendedListName}`);
+
+        // If user is currently viewing a list, offer to switch
+        if (currentList) {
+          // Show a notification to the user about the recommended list
+          showLocationNotification(locationData.recommendedListName, locationData.recommendedListId);
+        } else {
+          // If no list is open, auto-select the recommended one
+          const listData = await apiCall('GET', `/api/lists/${locationData.recommendedListId}`);
+          if (listData) {
+            console.log(`[LOCATION-UPDATE] Auto-opening: ${listData.name}`);
+            openList(listData);
+          }
+        }
+      }
+    }
+
+    // Show a toast notification for location-based list recommendation
+    function showLocationNotification(listName, listId) {
+      // Create a temporary notification element
+      const notification = document.createElement('div');
+      notification.style.cssText = `
+        position: fixed;
+        bottom: 100px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #4CAF50;
+        color: white;
+        padding: 12px 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        z-index: 1000;
+        font-size: 14px;
+        cursor: pointer;
+        animation: slideUp 0.3s ease-in-out;
+      `;
+      notification.textContent = `📍 ${listName} verfügbar - Klicken zum Öffnen`;
+
+      // Handle click to switch to the list
+      notification.addEventListener('click', async () => {
+        const listData = await apiCall('GET', `/api/lists/${listId}`);
+        if (listData) {
+          openList(listData);
+          notification.remove();
+        }
+      });
+
+      // Auto-remove after 8 seconds
+      document.body.appendChild(notification);
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.style.animation = 'slideDown 0.3s ease-in-out';
+          setTimeout(() => notification.remove(), 300);
+        }
+      }, 8000);
+    }
+
+    // Load and display lists as cards
+    async function loadListsAsCards() {
       const data = await apiCall('GET', '/api/lists');
       if (!data) return;
 
-      const selector = app.$('listSelector');
-      selector.innerHTML = '<option value="">Wähle eine Liste...</option>';
-      
+      allLists = data;
+      const grid = $('listsGrid');
+      grid.innerHTML = '';
+
+      if (data.length === 0) {
+        $('emptyListsState').classList.remove('hidden');
+        return;
+      }
+
+      $('emptyListsState').classList.add('hidden');
+
+      // Icon definitions
+      const icons = {
+        cart: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>`,
+        home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
+        pill: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"></path><circle cx="9" cy="10" r="1.5"></circle><circle cx="15" cy="10" r="1.5"></circle><circle cx="9" cy="16" r="1.5"></circle><circle cx="15" cy="16" r="1.5"></circle></svg>`,
+        sprout: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><ellipse cx="12" cy="13" rx="5" ry="8"></ellipse><path d="M12 13v8"></path><path d="M8 11l-2-2m8-2l2-2M6 17l-2 2m12-2l2 2M12 1v4"></path></svg>`,
+        wrench: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 1 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`,
+        utensils: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="13" r="7"></circle><path d="M12 6V4M12 4c0 0 2-1 2-3s-1-1-2-1-2 1-2 3 2 3 2 3"></path><path d="M9 13l-3 4"></path><path d="M15 13l3 4"></path></svg>`,
+        apple: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="13" r="7"></circle><path d="M12 6V4M12 4c0 0 2-1 2-3s-1-1-2-1-2 1-2 3 2 3 2 3"></path><path d="M9 13l-3 4"></path><path d="M15 13l3 4"></path></svg>`,
+        box: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>`
+      };
+
       data.forEach(list => {
-        const option = document.createElement('option');
-        option.value = list.id;
-        option.textContent = list.name;
-        selector.appendChild(option);
+        const card = document.createElement('div');
+        card.className = 'list-card';
+        
+        // Get icon SVG from database or use default
+        const iconKey = list.icon || 'cart';
+        const iconSvg = icons[iconKey] || icons.cart;
+        
+        // Set CSS variables for colors
+        const listColorMain = list.color || '#06b6d4';
+        const listColorLight = lightenColor(listColorMain);
+        
+        card.style.setProperty('--list-color-main', listColorMain);
+        card.style.setProperty('--list-color-light', listColorLight);
+        
+        card.innerHTML = `
+          <div class="list-card-header">
+            <div class="list-card-icon">${iconSvg}</div>
+            <div style="flex: 1;">
+              <div class="list-card-title">${list.name}</div>
+              ${list.description ? `<div class="list-card-description">${list.description}</div>` : ''}
+            </div>
+          </div>
+          <div class="list-card-stats">
+            <span class="list-card-stat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px; flex-shrink: 0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <span>${(list.item_count || 0)}</span>
+            </span>
+            <span class="list-card-stat">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px; flex-shrink: 0;"><path d="M22 19a2 2 0 0 1-2.414-.6l-5.4-7.769a2 2 0 0 0-3.197 0L2.41 16.6a2 2 0 1 1-3.196-2.8l.186-.168a2 2 0 0 0 3.01.001l5.4-7.769a2 2 0 0 1 3.196 0l5.4 7.769a2 2 0 0 0 3.01-.001l.186.168A2 2 0 0 1 22 19z"></path></svg>
+              <span>${list.category || 'Sonstiges'}</span>
+            </span>
+          </div>
+        `;
+        
+        card.addEventListener('click', () => openList(list));
+        grid.appendChild(card);
       });
+
+      // Auto-select recommended list
+      autoSelectRecommendedList();
     }
 
-    // Auto-load recommended list based on current zone
+    // Helper function to lighten a color
+    function lightenColor(color) {
+      const hex = color.replace('#', '');
+      const r = Math.min(255, parseInt(hex.substr(0, 2), 16) + 40);
+      const g = Math.min(255, parseInt(hex.substr(2, 2), 16) + 40);
+      const b = Math.min(255, parseInt(hex.substr(4, 2), 16) + 40);
+      return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+    }
+
+    // Auto-select by zone
     async function autoSelectRecommendedList() {
       try {
         const result = await apiCall('GET', '/api/user/recommended-list');
-        
-        if (result.error) {
-          console.log('[INFO] No recommended list:', result.error);
-          return;
-        }
-
-        if (result.recommendedList) {
-          console.log(`Auto-selecting list: ${result.recommendedList.name} (zone: ${result.zone})`);
-          
-          // Auto-select the list
-          const selector = app.$('listSelector');
-          selector.value = result.recommendedList.id;
-          
-          // Trigger change event
-          selector.dispatchEvent(new Event('change'));
-
-          // Show info notification (optional)
-          const infoEl = document.createElement('div');
-          infoEl.className = 'fixed top-4 right-4 p-4 bg-blue-100 text-blue-700 rounded-lg shadow-lg max-w-xs z-50 animate-pulse';
-          infoEl.innerHTML = `<strong>${result.recommendedList.name}</strong> is nearby (${result.zone})`;
-          document.body.appendChild(infoEl);
-
-          // Auto-remove after 5 seconds
-          setTimeout(() => infoEl.remove(), 5000);
-        } else {
-          console.log(`[INFO] No list for current zone: ${result.reason}`);
+        if (result?.recommendedList) {
+          console.log(`Auto-selecting: ${result.recommendedList.name}`);
+          // Auto-open the list after 1 second
+          setTimeout(() => openList(result.recommendedList), 1000);
         }
       } catch (error) {
-        console.warn('Failed to auto-select list:', error);
-        // App still works, just no auto-selection
+        console.warn('Auto-select failed:', error);
       }
     }
 
-    // Load list items
-    async function loadList(listId) {
-      currentList = listId;
-      
-      // Subscribe to list for real-time updates
+    // Open list view
+    async function openList(list) {
+      currentList = list.id;
+      $('currentListTitle').textContent = list.name;
+      $('listsView').classList.add('hidden');
+      $('itemsView').classList.remove('hidden');
+      $('inputFooter').classList.remove('hidden');
+
       if (wsClient && wsClient.isConnected()) {
-        wsClient.subscribeToList(listId);
+        wsClient.subscribeToList(list.id);
       }
 
+      await loadListItems(list.id);
+    }
+
+    // Load items for list
+    async function loadListItems(listId) {
       const data = await apiCall('GET', `/api/lists/${listId}`);
       if (!data) return;
 
-      // Update header with list icon/color
-      const header = app.$('app').querySelector('header');
-      if (data.icon) {
-        header.style.borderTopColor = data.color || '#667eea';
-        header.style.borderTopWidth = '4px';
-      }
-
-      const itemsList = app.$('itemsList');
+      const itemsList = $('itemsList');
       itemsList.innerHTML = '';
 
-      (data.items || []).sort((a, b) => {
+      const items = (data.items || []).sort((a, b) => {
         if (a.is_completed !== b.is_completed) return a.is_completed - b.is_completed;
         return new Date(b.created_at) - new Date(a.created_at);
-      }).forEach(item => {
-        const itemEl = createItemElement(item);
-        itemsList.appendChild(itemEl);
       });
 
-      app.$('emptyState').classList.add('hidden');
-      app.$('listContent').classList.remove('hidden');
-      app.$('itemInput').focus();
+      if (items.length === 0) {
+        $('emptyItemsState').classList.remove('hidden');
+      } else {
+        $('emptyItemsState').classList.add('hidden');
+      }
+
+      items.forEach(item => {
+        itemsList.appendChild(createItemElement(item));
+      });
+
+      $('itemInput').focus();
     }
 
-    // Add item to UI (for real-time sync)
+    // Swipe detection for mobile delete
+    let touchStartX = 0;
+    let touchCurrentX = 0;
+    let swipeItem = null;
+    const SWIPE_THRESHOLD = 80; // pixels
+
+    // Detect touch start
+    document.addEventListener('touchstart', (e) => {
+      touchStartX = e.touches[0].clientX;
+    }, false);
+
+    // Detect touch move
+    document.addEventListener('touchmove', (e) => {
+      if (!touchStartX) return;
+      const touch = e.touches[0];
+      touchCurrentX = touch.clientX;
+      const diff = touchStartX - touchCurrentX; // Positive = swipe left
+      
+      // Get the item being swiped
+      const item = e.target.closest('.item');
+      if (!item || diff < 20) return; // Ignore small movements
+      
+      swipeItem = item;
+      item.style.transform = `translateX(${Math.max(-diff, 0)}px)`;
+    }, false);
+
+    // Detect touch end
+    document.addEventListener('touchend', (e) => {
+      if (!swipeItem) return;
+      const diff = touchStartX - touchCurrentX;
+      
+      if (diff > SWIPE_THRESHOLD) {
+        // Swipe detected - show delete confirmation
+        const itemId = swipeItem.dataset.itemId;
+        if (confirm('Artikel wirklich löschen?')) {
+          swipeItem.classList.add('animate-slide-out');
+          setTimeout(() => {
+            deleteItem(itemId, swipeItem);
+          }, 150);
+        } else {
+          // Reset position
+          swipeItem.style.transform = 'translateX(0)';
+        }
+      } else {
+        // Reset position if swipe threshold not met
+        swipeItem.style.transform = 'translateX(0)';
+      }
+      
+      swipeItem = null;
+      touchStartX = 0;
+      touchCurrentX = 0;
+    }, false);
+
+    // Create item element
+    function createItemElement(item) {
+      const div = document.createElement('div');
+      div.className = `item ${item.is_completed ? 'completed' : ''}`;
+      div.dataset.itemId = item.id;
+      div.dataset.itemTitle = item.title.toLowerCase();
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.checked = item.is_completed;
+      checkbox.className = 'item-checkbox';
+      checkbox.addEventListener('change', () => toggleItem(item.id, checkbox.checked));
+
+      const content = document.createElement('div');
+      content.className = 'item-content';
+      content.innerHTML = `<span class="item-title">${item.title}</span>`;
+
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'item-action-btn';
+      deleteBtn.textContent = 'Löschen';
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (confirm('Artikel wirklich löschen?')) {
+          div.classList.add('animate-slide-out');
+          setTimeout(() => deleteItem(item.id, div), 150);
+        }
+      });
+
+      const actions = document.createElement('div');
+      actions.className = 'item-actions';
+      actions.appendChild(deleteBtn);
+
+      // Make entire item row clickable for toggle (except on touch devices during swipe)
+      div.addEventListener('click', (e) => {
+        // Don't toggle if clicking delete button
+        if (e.target.closest('.item-action-btn')) return;
+        // Toggle checkbox
+        checkbox.checked = !checkbox.checked;
+        toggleItem(item.id, checkbox.checked);
+      });
+
+      div.style.cursor = 'pointer';
+      div.appendChild(checkbox);
+      div.appendChild(content);
+      div.appendChild(actions);
+      return div;
+    }
+
+    // Add item with smart duplicate detection
+    async function addItem() {
+      const input = $('itemInput');
+      const title = input.value.trim();
+      if (!title || !currentList) return;
+
+      input.value = '';
+      input.focus();
+      hideAutoComplete();
+
+      // Check if item with same title exists and is completed
+      const allItems = Array.from($('itemsList').querySelectorAll('[data-item-id]'));
+      const existingItem = allItems.find(el => {
+        const itemTitle = el.dataset.itemTitle || el.querySelector('.item-title')?.textContent?.toLowerCase() || '';
+        return itemTitle === title.toLowerCase() && el.classList.contains('completed');
+      });
+
+      if (existingItem) {
+        // Re-activate existing item instead of creating duplicate
+        const itemId = existingItem.dataset.itemId;
+        await apiCall('PATCH', `/api/items/${itemId}`, { isCompleted: false });
+        updateItemInUI({ id: parseInt(itemId), is_completed: false });
+        if (wsClient?.isConnected()) {
+          wsClient.syncItemChange(currentList, 'update', itemId);
+        }
+      } else {
+        // Create new item
+        const result = await apiCall('POST', `/api/lists/${currentList}/items`, { title });
+        if (result) {
+          $('itemsList').appendChild(createItemElement(result));
+          $('emptyItemsState').classList.add('hidden');
+          if (wsClient?.isConnected()) {
+            wsClient.syncItemChange(currentList, 'create', result.id, result);
+          }
+        }
+      }
+    }
+
+    // Toggle item
+    async function toggleItem(itemId, isCompleted) {
+      // Update UI immediately for better UX
+      updateItemInUI({ id: itemId, is_completed: isCompleted });
+      
+      // Then sync with server
+      await apiCall('PATCH', `/api/items/${itemId}`, { isCompleted });
+      if (wsClient?.isConnected()) {
+        wsClient.syncItemChange(currentList, 'update', itemId);
+      }
+    }
+
+    // Delete item
+    async function deleteItem(itemId, element) {
+      await apiCall('DELETE', `/api/items/${itemId}`);
+      element.classList.add('animate-slide-out');
+      setTimeout(() => element.remove(), 200);
+      if (wsClient?.isConnected()) {
+        wsClient.syncItemChange(currentList, 'delete', itemId);
+      }
+    }
+
+    // Add item to UI
     function addItemToUI(item) {
-      const itemsList = app.$('itemsList');
-      const itemEl = createItemElement(item);
-      
-      // Insert at top (before completed items)
-      itemsList.insertBefore(itemEl, itemsList.firstChild);
-      
-      // Trigger animation
-      itemEl.classList.add('item-enter');
+      $('itemsList').appendChild(createItemElement(item));
+      $('emptyItemsState').classList.add('hidden');
     }
 
-    // Update item in UI (for real-time sync)
+    // Update item in UI with animation and resorting
     function updateItemInUI(item) {
       const itemEl = document.querySelector(`[data-item-id="${item.id}"]`);
       if (itemEl) {
@@ -414,145 +850,880 @@
         checkbox.checked = item.is_completed;
         
         if (item.is_completed) {
-          itemEl.classList.add('item-completed');
+          itemEl.classList.add('completed');
+          setTimeout(() => {
+            const list = $('itemsList');
+            list.appendChild(itemEl);
+          }, 200);
         } else {
-          itemEl.classList.remove('item-completed');
+          itemEl.classList.remove('completed');
+          const list = $('itemsList');
+          list.insertBefore(itemEl, list.firstChild);
         }
       }
     }
 
-    // Remove item from UI (for real-time sync)
+    // Remove item from UI
     function removeItemFromUI(itemId) {
       const itemEl = document.querySelector(`[data-item-id="${itemId}"]`);
       if (itemEl) {
-        itemEl.classList.add('item-exit');
+        itemEl.classList.add('animate-slide-out');
         setTimeout(() => itemEl.remove(), 200);
       }
     }
 
-    // Create item element
-    function createItemElement(item) {
-      const div = document.createElement('div');
-      div.className = `item-enter p-4 hover:bg-gray-50 cursor-pointer transition ${item.is_completed ? 'item-completed' : ''}`;
-      div.dataset.itemId = item.id;
-
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.checked = item.is_completed;
-      checkbox.className = 'mr-3 w-5 h-5 cursor-pointer accent-purple-600';
-
-      const label = document.createElement('label');
-      label.className = 'item-text cursor-pointer flex-1 ml-2 select-none';
-      label.textContent = item.title;
-
-      const deleteBtn = document.createElement('button');
-      deleteBtn.className = 'text-red-500 hover:text-red-700 text-sm opacity-0 hover:opacity-100 transition ml-2';
-      deleteBtn.textContent = 'Delete';
-      deleteBtn.type = 'button';
-
-      const container = document.createElement('div');
-      container.className = 'flex items-center';
-      container.appendChild(checkbox);
-      container.appendChild(label);
-      container.appendChild(deleteBtn);
-      div.appendChild(container);
-
-      // Event listeners
-      checkbox.addEventListener('change', () => toggleItem(item.id, checkbox.checked));
-      deleteBtn.addEventListener('click', () => deleteItem(item.id, div));
-
-      return div;
+    // Back to lists
+    function backToLists() {
+      currentList = null;
+      $('itemsView').classList.add('hidden');
+      $('inputFooter').classList.add('hidden');
+      $('listsView').classList.remove('hidden');
+      $('itemsList').innerHTML = '';
+      $('itemInput').value = '';
     }
 
-    // Add item
-    async function addItem() {
-      const input = app.$('itemInput');
-      const title = input.value.trim();
-
-      if (!title || !currentList) return;
-
-      input.value = '';
-      input.focus();
-
-      const result = await apiCall('POST', `/api/lists/${currentList}/items`, { title });
-      if (result) {
-        const itemEl = createItemElement(result);
-        app.$('itemsList').prepend(itemEl);
-
-        // Notify server for WebSocket broadcast
-        if (wsClient && wsClient.isConnected()) {
-          wsClient.syncItemChange(currentList, 'create', result.id, result);
-        }
-      }
-    }
-
-    // Toggle item
-    async function toggleItem(itemId, isCompleted) {
-      await apiCall('PATCH', `/api/items/${itemId}`, { isCompleted });
-
-      // Notify server for WebSocket broadcast
-      if (wsClient && wsClient.isConnected()) {
-        wsClient.syncItemChange(currentList, 'update', itemId);
-      }
-    }
-
-    // Delete item
-    async function deleteItem(itemId, element) {
-      element.classList.add('item-exit');
-      setTimeout(async () => {
-        await apiCall('DELETE', `/api/items/${itemId}`);
-        element.remove();
-
-        // Notify server for WebSocket broadcast
-        if (wsClient && wsClient.isConnected()) {
-          wsClient.syncItemChange(currentList, 'delete', itemId);
-        }
-      }, 200);
-    }
-
-    // Event listeners
-    app.$('listSelector').addEventListener('change', (e) => {
-      if (e.target.value) {
-        loadList(e.target.value);
-      }
-    });
-
-    app.$('addBtn').addEventListener('click', addItem);
-    app.$('itemInput').addEventListener('keypress', (e) => {
+    // Event Listeners
+    $('addBtn').addEventListener('click', addItem);
+    $('itemInput').addEventListener('keypress', (e) => {
       if (e.key === 'Enter') addItem();
     });
+    
+    // Auto-complete functionality
+    let autoCompleteDiv = null;
+    
+    function showAutoComplete(searchTerm) {
+      if (!searchTerm || searchTerm.length < 1) {
+        hideAutoComplete();
+        return;
+      }
+      
+      // Find all completed items that match
+      const completedItems = Array.from($('itemsList').querySelectorAll('.item.completed'));
+      const matches = completedItems.filter(el => {
+        const itemTitle = el.dataset.itemTitle || el.querySelector('.item-title')?.textContent?.toLowerCase() || '';
+        return itemTitle.includes(searchTerm.toLowerCase());
+      }).slice(0, 5); // Max 5 suggestions
+      
+      if (matches.length === 0) {
+        hideAutoComplete();
+        return;
+      }
+      
+      if (!autoCompleteDiv) {
+        autoCompleteDiv = document.createElement('div');
+        autoCompleteDiv.id = 'autoCompleteDropdown';
+        autoCompleteDiv.style.cssText = `
+          position: absolute;
+          bottom: 100%;
+          left: 0;
+          right: 0;
+          background: var(--color-white);
+          border: 1px solid var(--color-gray-200);
+          border-bottom: none;
+          border-radius: var(--radius-md) var(--radius-md) 0 0;
+          max-height: 200px;
+          overflow-y: auto;
+          z-index: 10;
+          box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
+          margin-bottom: 2px;
+        `;
+        $('itemInput').parentElement.style.position = 'relative';
+        $('itemInput').parentElement.appendChild(autoCompleteDiv);
+      }
+      
+      autoCompleteDiv.innerHTML = '';
+      autoCompleteDiv.style.display = 'block';
+      
+      matches.forEach(item => {
+        const option = document.createElement('div');
+        const text = item.querySelector('.item-title')?.textContent || '';
+        option.innerHTML = `<span style="padding: var(--spacing-sm) var(--spacing-md); display: block; cursor: pointer; border-bottom: 1px solid var(--color-gray-100);">${text}</span>`;
+        option.style.borderBottom = '1px solid var(--color-gray-100)';
+        option.addEventListener('click', () => {
+          $('itemInput').value = text;
+          hideAutoComplete();
+          addItem();
+        });
+        option.addEventListener('mouseenter', () => {
+          option.style.background = 'var(--color-gray-50)';
+        });
+        option.addEventListener('mouseleave', () => {
+          option.style.background = 'transparent';
+        });
+        autoCompleteDiv.appendChild(option);
+      });
+    }
+    
+    function hideAutoComplete() {
+      if (autoCompleteDiv) {
+        autoCompleteDiv.style.display = 'none';
+      }
+    }
 
-    app.$('menuBtn').addEventListener('click', () => {
-      app.$('menuModal').classList.remove('hidden');
+    /**
+     * Zone Monitoring & Push Notifications
+     * Check user's current zone and show notifications for suggested lists
+     */
+    let lastZone = null;
+    let zonePollingInterval = null;
+
+    async function startZoneMonitoring() {
+      console.log('[ZONE] Starting zone monitoring...');
+      
+      // Initial check
+      await checkCurrentZone();
+      
+      // Check every 30 seconds
+      zonePollingInterval = setInterval(checkCurrentZone, 30000);
+    }
+
+    async function checkCurrentZone() {
+      try {
+        const response = await fetch('/api/user/current-zone', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        // Auto-refresh token if provided
+        const newToken = response.headers.get('x-new-token');
+        if (newToken) {
+          localStorage.setItem('token', newToken);
+          window.token = newToken;
+          console.log('[TOKEN] Auto-renewed');
+        }
+
+        const data = await response.json();
+        
+        if (!data.zone) {
+          console.log('[ZONE] No zone available');
+          return;
+        }
+
+        console.log('[ZONE] Current zone:', data.zone);
+
+        // If zone changed, show notification
+        if (lastZone !== data.zone && lastZone !== null) {
+          console.log(`[ZONE] Zone changed: ${lastZone} → ${data.zone}`);
+          showZoneNotification(data);
+        }
+
+        lastZone = data.zone;
+      } catch (error) {
+        console.error('[ZONE] Monitoring error:', error);
+      }
+    }
+
+    function showZoneNotification(data) {
+      // Only show if app has notification permission
+      if ('Notification' in window && Notification.permission !== 'granted') {
+        return;
+      }
+
+      if (data.suggestedLists && data.suggestedLists.length > 0) {
+        const list = data.suggestedLists[0]; // First suggested list
+        const title = `Du bist in der ${data.friendly_name} Zone!`;
+        const options = {
+          body: `📋 ${list.name} ausmachen?`,
+          icon: '/icon-192.png',
+          badge: '/icon-96.png',
+          tag: `zone-${data.zone}`,
+          requireInteraction: false,
+          data: { listId: list.id, listName: list.name }
+        };
+
+        // Try to use Service Worker notification (works offline)
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'SHOW_NOTIFICATION',
+            title,
+            options
+          });
+        }
+        // Fallback to browser notification
+        else if ('Notification' in window) {
+          const notification = new Notification(title, options);
+          notification.onclick = () => {
+            window.currentList = list.id;
+            loadList(list.id);
+            notification.close();
+          };
+        }
+      }
+    }
+
+    function stopZoneMonitoring() {
+      if (zonePollingInterval) {
+        clearInterval(zonePollingInterval);
+        zonePollingInterval = null;
+        console.log('[ZONE] Zone monitoring stopped');
+      }
+    }
+
+    // Request notification permission on first load
+    async function requestNotificationPermission() {
+      if ('Notification' in window && Notification.permission === 'default') {
+        try {
+          const permission = await Notification.requestPermission();
+          console.log('[NOTIFICATION] Permission:', permission);
+          
+          if (permission === 'granted') {
+            startZoneMonitoring();
+          }
+        } catch (error) {
+          console.error('[NOTIFICATION] Permission error:', error);
+        }
+      } else if (Notification.permission === 'granted') {
+        startZoneMonitoring();
+      }
+    }
+    
+    // Auto-complete on input
+    $('itemInput').addEventListener('input', (e) => {
+      showAutoComplete(e.target.value.trim());
     });
-
-    app.$('menuModal').addEventListener('click', (e) => {
-      if (e.target === app.$('menuModal')) {
-        app.$('menuModal').classList.add('hidden');
+    
+    $('itemInput').addEventListener('focus', (e) => {
+      if (e.target.value.trim()) {
+        showAutoComplete(e.target.value.trim());
       }
     });
+    
+    $('itemInput').addEventListener('blur', () => {
+      setTimeout(() => hideAutoComplete(), 200);
+    });
+    $('backBtn').addEventListener('click', backToLists);
+    // Global header menu functions
+    window.toggleHeaderMenu = function() {
+      const dropdown = document.getElementById('headerMenuDropdown');
+      if (dropdown) {
+        dropdown.classList.toggle('active');
+      }
+    };
 
-    app.$('logoutBtn').addEventListener('click', () => {
+    window.logoutUser = function() {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
       window.location.href = '/setup.html';
+    };
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const menuContainer = document.querySelector('.header-menu-container');
+      if (menuContainer && !menuContainer.contains(e.target)) {
+        const dropdown = document.getElementById('headerMenuDropdown');
+        if (dropdown) {
+          dropdown.classList.remove('active');
+        }
+      }
     });
 
-    // Online/offline detection
-    window.addEventListener('online', () => {
-      isOnline = true;
-      app.$('offlineBadge').classList.add('hidden');
+    if (user?.is_admin || user?.isAdmin) {
+      const adminSection = document.getElementById('adminMenuSection');
+      if (adminSection) {
+        adminSection.classList.remove('hidden');
+      }
+    }
+    
+    // Display username in menu
+    if (user?.username) {
+      const userDisplayLabel = document.getElementById('userDisplayLabel');
+      if (userDisplayLabel) {
+        userDisplayLabel.textContent = `Angemeldet als: ${user.username}`;
+      }
+    }
+
+    // Theme Management
+    function initTheme() {
+      const savedTheme = localStorage.getItem('app-theme') || 'light';
+      applyTheme(savedTheme);
+      updateThemeButtons(savedTheme);
+    }
+
+    function applyTheme(theme) {
+      if (theme === 'system') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('app-theme', 'system');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('app-theme', theme);
+      }
+      updateThemeButtons(theme);
+    }
+
+    function updateThemeButtons(theme) {
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-theme') === theme) {
+          btn.classList.add('active');
+        }
+      });
+    }
+
+    // Theme button listeners
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.getAttribute('data-theme');
+        applyTheme(theme);
+      });
     });
 
-    window.addEventListener('offline', () => {
-      isOnline = false;
-      app.$('offlineBadge').classList.remove('hidden');
-    });
+    // ===== PROFILE MANAGEMENT =====
+    
+    window.openProfileModal = async function() {
+      // Show username
+      document.getElementById('profileUsername').textContent = user?.username || '—';
+      
+      // Clear forms
+      document.getElementById('profileChangeUsernameForm').reset();
+      document.getElementById('profileChangePasswordForm').reset();
+      document.getElementById('profileAccountMessage').style.display = 'none';
+      document.getElementById('profilePasswordMessage').style.display = 'none';
+      document.getElementById('twoFAMessage').style.display = 'none';
+      
+      // Show Account tab by default
+      document.querySelectorAll('#profileModal .profile-tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('#profileModal .profile-tab').forEach(el => el.classList.remove('active'));
+      document.getElementById('profileTab-account').classList.add('active');
+      document.getElementById('profileTabAccount').classList.add('active');
+      
+      // Show modal
+      document.getElementById('profileModal').classList.remove('hidden');
+      
+      // Initialize tab indicator
+      setTimeout(() => {
+        const container = document.querySelector('#profileModal .tabs-container');
+        if (container) updateTabIndicator(container);
+      }, 0);
+      
+      // Load 2FA status
+      window.load2FAStatus();
+    };
 
-    // Initialize
-    initWebSocket(); // Start WebSocket connection
-    loadLists();
-    autoSelectRecommendedList(); // Auto-select list based on current zone
+    window.closeProfileModal = function() {
+      document.getElementById('profileModal').classList.add('hidden');
+    };
+
+    window.submitChangeUsername = async function(e) {
+      e.preventDefault();
+      
+      const newUsername = e.target.querySelector('[name="newUsername"]').value;
+      const password = e.target.querySelector('[name="password"]').value;
+      const statusEl = document.getElementById('profileAccountMessage');
+      
+      try {
+        const result = await window.apiCall('PATCH', '/api/user/profile', {
+          username: newUsername,
+          currentPassword: password
+        });
+        
+        if (result && result.success) {
+          showMessage(statusEl, '✓ Benutzername erfolgreich geändert', 'success');
+          user.username = newUsername;
+          setTimeout(() => {
+            window.closeProfileModal();
+          }, 1500);
+        } else {
+          showMessage(statusEl, result?.error || 'Fehler beim Speichern', 'error');
+        }
+      } catch (error) {
+        showMessage(statusEl, 'Fehler beim Speichern: ' + error.message, 'error');
+      }
+    };
+
+    window.submitChangePassword = async function(e) {
+      e.preventDefault();
+      
+      const currentPassword = e.target.querySelector('[name="currentPassword"]').value;
+      const newPassword = e.target.querySelector('[name="newPassword"]').value;
+      const statusEl = document.getElementById('profilePasswordMessage');
+      
+      if (newPassword.length < 8) {
+        showMessage(statusEl, 'Passwort muss mindestens 8 Zeichen lang sein', 'error');
+        return;
+      }
+      
+      try {
+        const result = await window.apiCall('PATCH', '/api/user/profile', {
+          password: newPassword,
+          currentPassword
+        });
+        
+        if (result && result.success) {
+          showMessage(statusEl, '✓ Passwort erfolgreich geändert', 'success');
+          setTimeout(() => {
+            window.closeProfileModal();
+          }, 1500);
+        } else {
+          showMessage(statusEl, result?.error || 'Fehler beim Speichern', 'error');
+        }
+      } catch (error) {
+        showMessage(statusEl, 'Fehler beim Speichern: ' + error.message, 'error');
+      }
+    };
+
+    function showMessage(statusEl, message, type) {
+      statusEl.textContent = message;
+      statusEl.style.display = 'block';
+      statusEl.className = type === 'success' 
+        ? 'message message-success'
+        : 'message message-error';
+    }
+
+    window.submitProfileForm = async function(e) {
+      e.preventDefault();
+      
+      const newPassword = document.getElementById('profilePassword').value;
+      const confirmPassword = document.getElementById('profilePasswordConfirm').value;
+      const currentPassword = document.getElementById('profileCurrentPassword').value;
+      const statusMsg = document.getElementById('profileStatusMessage');
+
+      // Validation
+      if (newPassword || confirmPassword) {
+        if (newPassword !== confirmPassword) {
+          showProfileStatus('Passwörter stimmen nicht überein', 'error');
+          return;
+        }
+        if (newPassword.length < 6) {
+          showProfileStatus('Passwort muss mindestens 6 Zeichen lang sein', 'error');
+          return;
+        }
+      }
+
+      if (!currentPassword) {
+        showProfileStatus('Aktuelles Passwort ist erforderlich', 'error');
+        return;
+      }
+
+      // Submit to API
+      try {
+        const result = await window.apiCall('PATCH', '/api/user/profile', {
+          password: newPassword || null,
+          currentPassword
+        });
+
+        if (result && result.success) {
+          showProfileStatus('✓ Profil erfolgreich aktualisiert', 'success');
+          setTimeout(() => {
+            window.closeProfileModal();
+          }, 1500);
+        } else {
+          showProfileStatus(result?.error || 'Fehler beim Speichern', 'error');
+        }
+      } catch (error) {
+        showProfileStatus('Fehler beim Speichern: ' + error.message, 'error');
+      }
+    };
+
+    function showProfileStatus(message, type) {
+      const statusMsg = document.getElementById('profileStatusMessage');
+      statusMsg.textContent = message;
+      statusMsg.style.display = 'block';
+      statusMsg.className = type === 'success' 
+        ? 'message message-success mt-md'
+        : 'message message-error mt-md';
+    }
+
+    // Tab switching for profile modal
+    // Helper function to update animated tab indicator
+    const updateTabIndicator = function(container) {
+      const activeBtn = container.querySelector('.profile-tab.active');
+      if (!activeBtn) return;
+      
+      const left = activeBtn.offsetLeft;
+      const width = activeBtn.offsetWidth;
+      
+      container.style.setProperty('--tab-indicator-left', `${left}px`);
+      container.style.setProperty('--tab-indicator-width', `${width}px`);
+    };
+
+    window.switchProfileTab = function(tabName) {
+      // Hide all tab contents
+      document.querySelectorAll('#profileModal .profile-tab-content').forEach(el => el.classList.remove('active'));
+      
+      // Remove active class from all buttons
+      document.querySelectorAll('#profileModal .profile-tab').forEach(el => el.classList.remove('active'));
+      
+      // Show selected tab content
+      const tabEl = document.getElementById(`profileTab-${tabName}`);
+      if (tabEl) {
+        tabEl.classList.add('active');
+      }
+      
+      // Activate the clicked button
+      const btnEl = event.target.closest('button');
+      if (btnEl) {
+        btnEl.classList.add('active');
+        
+        // Update floating indicator
+        const container = btnEl.closest('.tabs-container');
+        if (container) updateTabIndicator(container);
+      }
+    };
+
+    // Load 2FA status when modal opens
+    window.load2FAStatus = async function() {
+      try {
+        const result = await window.apiCall('GET', '/api/user/2fa-status');
+        const statusEl = document.getElementById('twoFAStatusText');
+        const disabledEl = document.getElementById('twoFADisabled');
+        const enabledEl = document.getElementById('twoFAEnabled');
+        
+        if (result && result.enabled) {
+          statusEl.textContent = '✓ Aktiv';
+          statusEl.style.color = 'var(--color-success)';
+          disabledEl.style.display = 'none';
+          enabledEl.style.display = 'block';
+        } else {
+          statusEl.textContent = 'Nicht aktiviert';
+          statusEl.style.color = 'var(--color-gray-600)';
+          disabledEl.style.display = 'block';
+          enabledEl.style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Fehler beim Laden 2FA-Status:', error);
+        // Fallback: show disabled state on error
+        const statusEl = document.getElementById('twoFAStatusText');
+        const disabledEl = document.getElementById('twoFADisabled');
+        const enabledEl = document.getElementById('twoFAEnabled');
+        statusEl.textContent = 'Nicht aktiviert';
+        statusEl.style.color = 'var(--color-gray-600)';
+        disabledEl.style.display = 'block';
+        enabledEl.style.display = 'none';
+      }
+    };
+
+    // Initiate 2FA setup
+    window.initiateTwoFASetup = async function() {
+      try {
+        const result = await window.apiCall('POST', '/api/user/2fa-initiate');
+        if (!result) {
+          showTwoFAMessage('Fehler beim Initiieren des 2FA-Setups', 'error');
+          return;
+        }
+
+        // Store for later use
+        window.twoFASetupData = result;
+        
+        // Show QR Code and setup form
+        document.getElementById('twoFADisabled').style.display = 'none';
+        document.getElementById('twoFASetupState').style.display = 'block';
+        document.getElementById('twoFAQRCode').src = result.qrCode;
+        document.getElementById('twoFAManualSecret').textContent = result.secret;
+      } catch (error) {
+        console.error('Error initiating 2FA:', error);
+        showTwoFAMessage('Fehler beim Initiieren des 2FA-Setups', 'error');
+      }
+    };
+
+    // Cancel 2FA setup
+    window.cancelTwoFASetup = function() {
+      document.getElementById('twoFASetupState').style.display = 'none';
+      document.getElementById('twoFABackupCodesState').style.display = 'none';
+      document.getElementById('twoFADisabled').style.display = 'block';
+      document.getElementById('twoFAVerificationCode').value = '';
+      window.twoFASetupData = null;
+    };
+
+    // Verify 2FA code
+    window.verifyTwoFACode = async function() {
+      const code = document.getElementById('twoFAVerificationCode').value.trim();
+      
+      if (code.length !== 6 || !/^\d+$/.test(code)) {
+        showTwoFAMessage('Bitte geben Sie einen 6-stelligen Code ein', 'error');
+        return;
+      }
+
+      try {
+        const result = await window.apiCall('POST', '/api/user/2fa-verify', { code });
+        if (!result || !result.success) {
+          showTwoFAMessage('Ungültiger 2FA-Code', 'error');
+          return;
+        }
+
+        // Show backup codes
+        document.getElementById('twoFASetupState').style.display = 'none';
+        document.getElementById('twoFABackupCodesState').style.display = 'block';
+        
+        const backupCodesList = document.getElementById('twoFABackupCodesList');
+        backupCodesList.innerHTML = result.backupCodes
+          .map(code => `<div>${code}</div>`)
+          .join('');
+        
+        window.twoFABackupCodes = result.backupCodes;
+      } catch (error) {
+        console.error('Error verifying 2FA code:', error);
+        showTwoFAMessage('Fehler beim Verifizieren des Codes', 'error');
+      }
+    };
+
+    // Copy backup codes to clipboard
+    window.copyBackupCodes = function() {
+      const codes = window.twoFABackupCodes.join('\n');
+      navigator.clipboard.writeText(codes).then(() => {
+        showTwoFAMessage('Backup-Codes in Zwischenablage kopiert', 'success');
+      }).catch(() => {
+        showTwoFAMessage('Fehler beim Kopieren', 'error');
+      });
+    };
+
+    // Finalize 2FA setup
+    window.finalizeTwoFASetup = function() {
+      document.getElementById('twoFABackupCodesState').style.display = 'none';
+      document.getElementById('twoFASetupState').style.display = 'none';
+      document.getElementById('twoFADisabled').style.display = 'none';
+      document.getElementById('twoFAEnabled').style.display = 'block';
+      window.load2FAStatus();
+      showTwoFAMessage('2FA wurde erfolgreich aktiviert!', 'success');
+    };
+
+    // Show disable 2FA form
+    window.showDisableTwoFAForm = function() {
+      document.getElementById('twoFAEnabled').style.display = 'none';
+      document.getElementById('twoFADisableForm').style.display = 'block';
+      document.getElementById('disableTwoFAPassword').value = '';
+    };
+
+    // Cancel disable 2FA
+    window.cancelDisableTwoFA = function() {
+      document.getElementById('twoFADisableForm').style.display = 'none';
+      document.getElementById('twoFAEnabled').style.display = 'block';
+    };
+
+    // Confirm disable 2FA
+    window.confirmDisableTwoFA = async function() {
+      const password = document.getElementById('disableTwoFAPassword').value;
+      
+      if (!password) {
+        showTwoFAMessage('Bitte geben Sie Ihr Passwort ein', 'error');
+        return;
+      }
+
+      try {
+        const result = await window.apiCall('DELETE', '/api/user/2fa', { password });
+        if (!result || !result.success) {
+          showTwoFAMessage('Fehler beim Deaktivieren von 2FA', 'error');
+          return;
+        }
+
+        document.getElementById('twoFADisableForm').style.display = 'none';
+        document.getElementById('twoFAEnabled').style.display = 'none';
+        document.getElementById('twoFADisabled').style.display = 'block';
+        document.getElementById('disableTwoFAPassword').value = '';
+        window.load2FAStatus();
+        showTwoFAMessage('2FA wurde deaktiviert', 'success');
+      } catch (error) {
+        console.error('Error disabling 2FA:', error);
+        showTwoFAMessage('Fehler beim Deaktivieren von 2FA', 'error');
+      }
+    };
+
+    // Helper function to show 2FA messages
+    function showTwoFAMessage(message, type) {
+      const messageEl = document.getElementById('twoFAMessage');
+      messageEl.textContent = message;
+      messageEl.style.display = 'block';
+      messageEl.style.background = type === 'error' ? 'var(--color-danger)-50' : 'var(--color-success)-50';
+      messageEl.style.color = type === 'error' ? 'var(--color-danger)' : 'var(--color-success)';
+      messageEl.style.borderLeft = `4px solid ${type === 'error' ? 'var(--color-danger)' : 'var(--color-success)'}`;
+      
+      setTimeout(() => {
+        messageEl.style.display = 'none';
+      }, 5000);
+    }
+
+    // Deprecated functions for compatibility
+    window.disableTwoFA = function() {
+      window.showDisableTwoFAForm();
+    };
+
+    // Enable 2FA (deprecated - use initiateTwoFASetup instead)
+    window.enable2FA = function() {
+      window.initiateTwoFASetup();
+    };
+
+    // Update user display when loaded
+    function updateUserDisplay() {
+      const userDisplayLabel = document.getElementById('userDisplayLabel');
+      const userInitial = document.getElementById('userInitial');
+      if (user?.username) {
+        userDisplayLabel.textContent = user.username;
+        userInitial.textContent = user.username.charAt(0).toUpperCase();
+      }
+    }
+
+    // Init theme
+    initTheme();
+
+    // Init
+    initWebSocket();
+    loadListsAsCards();
+    updateUserDisplay();
+    
+    // Start zone monitoring for push notifications
+    requestNotificationPermission();
   </script>
+
+  <!-- Profile Modal with Tabs (same as Admin Dashboard) -->
+  <div id="profileModal" class="modal-overlay hidden" onclick="if(event.target === this) window.closeProfileModal()">
+    <div class="modal" style="max-width: 600px;">
+      <div class="modal-header">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 20px; height: 20px; display: inline; margin-right: 8px; vertical-align: middle;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Mein Profil</span>
+        <button onclick="window.closeProfileModal()" style="background: none; border: none; cursor: pointer; color: var(--color-gray-500); padding: 8px; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 20px; height: 20px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+      </div>
+      
+      <!-- Profile Tabs - same as Admin Dashboard -->
+      <div class="tabs-container">
+        <button class="profile-tab active" onclick="window.switchProfileTab('account')" id="profileTabAccount">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+          Konto
+        </button>
+        <button class="profile-tab" onclick="window.switchProfileTab('password')" id="profileTabPassword">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Sicherheit
+        </button>
+        <button class="profile-tab" onclick="window.switchProfileTab('twofa')" id="profileTabTwoFA">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+          2FA
+        </button>
+      </div>
+      
+      <div class="modal-body" style="max-height: 500px; overflow-y: auto;">
+        
+        <!-- TAB 1: Account -->
+        <div id="profileTab-account" class="profile-tab-content active">
+          <div style="margin-bottom: var(--spacing-md); padding: var(--spacing-md); background: var(--color-gray-50); border-radius: var(--radius-md); border-left: 4px solid var(--color-primary);">
+            <p style="margin: 0; font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-sm);">Aktueller Benutzer</p>
+            <p style="margin: 0; font-size: 1.1rem; font-weight: 600;" id="profileUsername">-</p>
+          </div>
+
+          <form id="profileChangeUsernameForm" onsubmit="window.submitChangeUsername(event)">
+            <h3 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1rem;">Benutzername ändern</h3>
+            <div style="margin-bottom: var(--spacing-md);">
+              <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Neuer Benutzername</label>
+              <input type="text" name="newUsername" placeholder="z.B. andre" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+            </div>
+            <div style="margin-bottom: var(--spacing-md);">
+              <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Passwort bestätigen</label>
+              <input type="password" name="password" placeholder="••••••••" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+            </div>
+            <div id="profileAccountMessage" style="display: none; margin-bottom: var(--spacing-md);"></div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Speichern</button>
+          </form>
+        </div>
+
+        <!-- TAB 2: Password/Security -->
+        <div id="profileTab-password" class="profile-tab-content">
+          <form id="profileChangePasswordForm" onsubmit="window.submitChangePassword(event)">
+            <h3 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1rem;">Passwort ändern</h3>
+            <p style="color: var(--color-gray-600); font-size: 0.9rem; margin-bottom: var(--spacing-md);">Aktualisieren Sie Ihr Passwort regelmäßig für bessere Sicherheit.</p>
+            
+            <div style="margin-bottom: var(--spacing-md);">
+              <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Aktuelles Passwort</label>
+              <input type="password" name="currentPassword" placeholder="••••••••" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+            </div>
+            <div style="margin-bottom: var(--spacing-md);">
+              <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Neues Passwort (min. 8 Zeichen)</label>
+              <input type="password" name="newPassword" placeholder="••••••••" required minlength="8" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+            </div>
+            <div id="profilePasswordMessage" style="display: none; margin-bottom: var(--spacing-md);"></div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">Passwort ändern</button>
+          </form>
+        </div>
+
+        <!-- TAB 3: Two-Factor Authentication -->
+        <div id="profileTab-twofa" class="profile-tab-content">
+          <h3 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1rem;">Zwei-Faktor-Authentifizierung (2FA)</h3>
+          <p style="color: var(--color-gray-600); font-size: 0.9rem; margin-bottom: var(--spacing-lg);">Schützen Sie Ihren Account mit einem zusätzlichen Sicherheitscode.</p>
+          
+          <div id="twoFAStatus" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-gray-50); border-radius: var(--radius-md); border-left: 4px solid var(--color-warning);">
+            <p style="margin: 0; font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-sm);">Status</p>
+            <p style="margin: 0; font-size: 1rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="twoFAStatusText">Wird geladen...</p>
+          </div>
+
+          <!-- 2FA Disabled State -->
+          <div id="twoFADisabled" style="display: none;">
+            <button type="button" class="btn btn-primary" onclick="window.initiateTwoFASetup()" style="width: 100%;">2FA Aktivieren</button>
+          </div>
+
+          <!-- 2FA Setup State (QR Code) -->
+          <div id="twoFASetupState" style="display: none;">
+            <div style="margin-bottom: var(--spacing-lg);">
+              <h4 style="margin: 0 0 var(--spacing-md) 0; font-size: 0.95rem;">Schritt 1: QR-Code scannen</h4>
+              <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Scannen Sie diesen QR-Code mit Ihrer Authentifizierungs-App (z.B. Google Authenticator, Authy, Microsoft Authenticator).</p>
+              <div style="text-align: center; padding: var(--spacing-lg); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);">
+                <img id="twoFAQRCode" src="" alt="2FA QR Code" style="max-width: 300px; width: 100%; height: auto;">
+              </div>
+              <p style="font-size: 0.8rem; color: var(--color-gray-500); margin-top: var(--spacing-md); text-align: center;">
+                Oder geben Sie diesen Code manuell ein: <code style="background: var(--color-gray-100); padding: 0 4px; border-radius: 3px;" id="twoFAManualSecret"></code>
+              </p>
+            </div>
+
+            <div style="margin-bottom: var(--spacing-lg);">
+              <h4 style="margin: 0 0 var(--spacing-md) 0; font-size: 0.95rem;">Schritt 2: Code eingeben</h4>
+              <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Geben Sie den 6-stelligen Code aus Ihrer App ein.</p>
+              <input type="text" id="twoFAVerificationCode" placeholder="000000" maxlength="6" style="width: 100%; padding: var(--spacing-sm); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: 1.2rem; text-align: center; letter-spacing: 4px; font-family: monospace;">
+            </div>
+
+            <div style="display: flex; gap: var(--spacing-sm);">
+              <button type="button" class="btn btn-secondary" onclick="window.cancelTwoFASetup()" style="flex: 1;">Abbrechen</button>
+              <button type="button" class="btn btn-primary" onclick="window.verifyTwoFACode()" style="flex: 1;">Bestätigen</button>
+            </div>
+          </div>
+
+          <!-- 2FA Setup Success (Backup Codes) -->
+          <div id="twoFABackupCodesState" style="display: none;">
+            <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-warning)-50; border-radius: var(--radius-md); border-left: 4px solid var(--color-warning);">
+              <p style="margin: 0; font-size: 0.9rem; color: var(--color-warning); font-weight: 600;">⚠️ Speichern Sie die Backup-Codes</p>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Diese Codes können verwendet werden, um auf Ihren Account zuzugreifen, wenn Sie Ihr Authentifizierungs-Gerät verlieren. Bewahren Sie sie an einem sicheren Ort auf.</p>
+            <div style="background: var(--color-gray-50); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); padding: var(--spacing-md); margin-bottom: var(--spacing-lg); font-family: monospace; font-size: 0.85rem; line-height: 1.8;">
+              <div id="twoFABackupCodesList"></div>
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="window.copyBackupCodes()" style="width: 100%; margin-bottom: var(--spacing-sm);">In Zwischenablage kopieren</button>
+            <button type="button" class="btn btn-primary" onclick="window.finalizeTwoFASetup()" style="width: 100%;">Fertig</button>
+          </div>
+
+          <!-- 2FA Enabled State -->
+          <div id="twoFAEnabled" style="display: none;">
+            <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-success)-50; border-radius: var(--radius-md); border-left: 4px solid var(--color-success);">
+              <p style="margin: 0; font-size: 0.9rem; color: var(--color-success); font-weight: 600;">✓ 2FA ist aktiv</p>
+            </div>
+            <div>
+              <h4 style="margin: 0 0 var(--spacing-md) 0; font-size: 0.95rem;">2FA Deaktivieren</h4>
+              <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Wenn Sie 2FA deaktivieren, benötigen Sie nur noch Ihr Passwort zum Anmelden.</p>
+              <button type="button" class="btn btn-danger" onclick="window.showDisableTwoFAForm()" style="width: 100%;">2FA Deaktivieren</button>
+            </div>
+          </div>
+
+          <!-- Disable 2FA Form -->
+          <div id="twoFADisableForm" style="display: none;">
+            <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-danger)-50; border-radius: var(--radius-md); border-left: 4px solid var(--color-danger);">
+              <p style="margin: 0; font-size: 0.9rem; color: var(--color-danger); font-weight: 600;">⚠️ Diese Aktion kann nicht rückgängig gemacht werden</p>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Geben Sie Ihr Passwort ein, um 2FA zu deaktivieren.</p>
+            <div style="margin-bottom: var(--spacing-lg);">
+              <input type="password" id="disableTwoFAPassword" placeholder="Passwort" style="width: 100%; padding: var(--spacing-sm); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md);">
+            </div>
+            <div style="display: flex; gap: var(--spacing-sm);">
+              <button type="button" class="btn btn-secondary" onclick="window.cancelDisableTwoFA()" style="flex: 1;">Abbrechen</button>
+              <button type="button" class="btn btn-danger" onclick="window.confirmDisableTwoFA()" style="flex: 1;">Deaktivieren</button>
+            </div>
+          </div>
+
+          <div id="twoFAMessage" style="margin-top: var(--spacing-lg); padding: var(--spacing-md); border-radius: var(--radius-md); display: none;"></div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="window.closeProfileModal()">Abbrechen</button>
+        <button type="button" class="btn btn-primary" onclick="window.closeProfileModal()">Fertig</button>
+      </div>
+    </div>
+  </div>
+
 </body>
 </html>

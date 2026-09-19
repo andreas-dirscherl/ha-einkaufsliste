@@ -3,678 +3,2207 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#06b6d4">
   <title>Admin Dashboard - Einkaufsliste</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="/style.css">
+  
   <style>
-    body { background: #f8f9fa; }
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    .tab-btn.active { @apply bg-purple-600 text-white; }
-    .tab-btn { @apply bg-gray-200 text-gray-800; }
+    body {
+      -webkit-user-select: none;
+      user-select: none;
+    }
+
+    .admin-wrapper {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+    }
+
+    .admin-content {
+      flex: 1;
+      padding: var(--spacing-lg);
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    /* Icon Button Styles */
+    .icon-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 36px;
+      height: 36px;
+      border: none;
+      border-radius: var(--radius-md);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      background: transparent;
+      padding: 0;
+      flex-shrink: 0;
+    }
+
+    .icon-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke-width: 2;
+    }
+
+    .icon-btn.primary {
+      color: var(--color-primary);
+      background: rgba(37, 99, 235, 0.1);
+    }
+
+    .icon-btn.primary:hover {
+      background: rgba(37, 99, 235, 0.2);
+    }
+
+    .icon-btn.danger {
+      color: var(--color-danger, #ef4444);
+      background: rgba(239, 68, 68, 0.1);
+    }
+
+    .icon-btn.danger:hover {
+      background: rgba(239, 68, 68, 0.2);
+    }
+
+    .icon-btn.secondary {
+      color: var(--color-gray-600);
+      background: rgba(75, 85, 99, 0.1);
+    }
+
+    .icon-btn.secondary:hover {
+      background: rgba(75, 85, 99, 0.2);
+    }
+
+    /* Modal Styling - centered */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: var(--spacing-md);
+      box-sizing: border-box;
+    }
+
+    .modal-overlay.hidden {
+      display: none;
+    }
+
+    .modal {
+      background: var(--bg-surface);
+      border-radius: var(--radius-lg);
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+      animation: slideIn 0.3s ease-out;
+      box-sizing: border-box;
+      border: 1px solid var(--color-gray-300);
+    }
+
+    .modal-header {
+      padding: var(--spacing-lg);
+      border-bottom: 1px solid var(--color-gray-300);
+      font-size: 1.25rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-header button {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      cursor: pointer;
+      color: var(--text-secondary);
+      padding: 0;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: color 0.2s ease;
+    }
+
+    .modal-header button:hover {
+      color: var(--text-primary);
+    }
+
+    .modal-body {
+      padding: var(--spacing-lg);
+      color: var(--text-primary);
+    }
+
+    .modal-body input,
+    .modal-body select,
+    .modal-body textarea {
+      background: var(--bg-surface-alt);
+      color: var(--text-primary);
+      border-color: var(--color-gray-300);
+    }
+
+    .modal-body input:focus,
+    .modal-body select:focus,
+    .modal-body textarea:focus {
+      background: var(--bg-surface);
+      border-color: var(--color-primary);
+    }
+
+    .modal-body label {
+      color: var(--text-primary);
+      font-weight: 500;
+    }
+
+    .data-section {
+      background: var(--color-white);
+      border-radius: var(--radius-lg);
+      padding: var(--spacing-lg);
+      margin-bottom: var(--spacing-lg);
+      box-shadow: var(--shadow-md);
+      box-sizing: border-box;
+    }
+
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.95rem;
+    }
+
+    .data-table th {
+      background: var(--color-gray-50);
+      padding: var(--spacing-md);
+      text-align: left;
+      font-weight: 600;
+      color: var(--color-gray-700);
+      border-bottom: 1px solid var(--color-gray-200);
+      font-size: 0.85rem;
+    }
+
+    .data-table td {
+      padding: var(--spacing-md);
+      border-bottom: 1px solid var(--color-gray-100);
+      color: var(--color-gray-700);
+    }
+
+    .data-table tr:hover {
+      background: var(--color-gray-50);
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: var(--spacing-sm);
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn-small {
+      padding: var(--spacing-sm) var(--spacing-md);
+      font-size: 0.75rem;
+    }
+
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--spacing-lg);
+      flex-wrap: wrap;
+      gap: var(--spacing-md);
+    }
+
+    .header-row h2 {
+      margin: 0;
+      flex: 1;
+      min-width: 150px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .admin-content {
+        padding: var(--spacing-md);
+      }
+
+      .data-section {
+        padding: var(--spacing-md);
+      }
+
+      .data-table {
+        font-size: 0.85rem;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: var(--spacing-sm) 0.5rem;
+      }
+
+      .tabs-container {
+        margin-bottom: var(--spacing-md);
+      }
+
+      .profile-tab {
+        padding: var(--spacing-sm) var(--spacing-md);
+        font-size: 0.75rem;
+      }
+
+      .action-buttons {
+        gap: 4px;
+      }
+
+      .btn-small {
+        padding: 0.375rem var(--spacing-sm);
+        font-size: 0.7rem;
+      }
+
+      .header-row {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .header-row h2 {
+        width: 100%;
+        margin-bottom: var(--spacing-sm);
+      }
+
+      .header-row button {
+        width: 100%;
+      }
+
+      .modal-body {
+        padding: var(--spacing-md);
+      }
+
+      input[type="text"],
+      input[type="password"],
+      select {
+        font-size: 16px !important; /* Prevent zoom on iOS */
+        width: 100% !important;
+        box-sizing: border-box !important;
+      }
+
+      .modal {
+        max-width: 95vw;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .admin-content {
+        padding: var(--spacing-sm);
+      }
+
+      .data-section {
+        padding: var(--spacing-sm);
+      }
+
+      .profile-tab {
+        padding: var(--spacing-xs) var(--spacing-sm);
+        font-size: 0.7rem;
+      }
+
+      .data-table th,
+      .data-table td {
+        padding: 0.375rem 0.25rem;
+      }
+
+      .icon-btn {
+        width: 32px;
+        height: 32px;
+      }
+
+      .icon-btn svg {
+        width: 18px;
+        height: 18px;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="min-h-screen flex flex-col">
+  <div class="admin-wrapper">
     <!-- Header -->
-    <header class="bg-white border-b border-gray-200 shadow">
-      <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
-        <h1 class="text-2xl font-bold text-gray-800">Administration</h1>
-        <button id="logoutBtn" class="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200">
-          Logout
-        </button>
+    <header class="header">
+      <div class="header-content">
+        <h1 class="header-title">Admin Dashboard</h1>
+        <div class="header-actions">
+          <div class="header-menu-container">
+            <button class="header-menu-btn" id="headerMenuBtn" onclick="window.toggleHeaderMenu()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
+            <div class="header-menu-dropdown" id="headerMenuDropdown">
+              <a href="/" class="header-menu-item" style="text-decoration: none;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+                Zurück zur App
+              </a>
+              <div class="header-menu-separator"></div>
+              <div style="padding: var(--spacing-sm) var(--spacing-md); display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-gray-200); margin-bottom: var(--spacing-sm);">
+                <span style="font-size: 0.875rem; color: var(--text-secondary);">Design</span>
+                <div style="display: flex; gap: var(--spacing-xs); background: var(--bg-surface-alt); padding: var(--spacing-xs); border-radius: var(--radius-md);">
+                  <button id="themeBtnLight" class="theme-btn active" data-theme="light" title="Hell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg></button>
+                  <button id="themeBtnDark" class="theme-btn" data-theme="dark" title="Dunkel"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg></button>
+                  <button id="themeBtnSystem" class="theme-btn" data-theme="system" title="System"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></button>
+                </div>
+              </div>
+              <!-- User Section -->
+              <div style="padding: var(--spacing-sm) var(--spacing-md); border-top: 1px solid var(--color-gray-200); margin-top: var(--spacing-sm);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-md); margin-bottom: var(--spacing-md);">
+                  <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--color-primary); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                    <span id="userInitial">—</span>
+                  </div>
+                  <div style="flex: 1; min-width: 0;">
+                    <div id="userDisplayLabel" style="font-weight: 600; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">—</div>
+                    <div style="font-size: 0.75rem; color: var(--text-secondary);">Benutzer</div>
+                  </div>
+                </div>
+                <button class="header-menu-item" onclick="window.openProfileModal()" style="width: 100%; color: var(--text-primary); border-bottom: 1px solid var(--color-gray-200); padding-bottom: var(--spacing-sm); margin-bottom: var(--spacing-sm);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                  Profil bearbeiten
+                </button>
+                <button class="header-menu-item" onclick="window.logoutUser()" style="width: 100%; color: var(--color-error);">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14"></path><polyline points="16 8 16 4 8 4 8 4"></polyline><line x1="16" y1="12" x2="2" y2="12"></line></svg>
+                  Abmelden
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </header>
 
-    <!-- Main content -->
-    <div class="flex-1 max-w-7xl mx-auto w-full">
+    <!-- Main Content -->
+    <main class="admin-content">
       <!-- Tabs -->
-      <div class="bg-white border-b border-gray-200 mt-6 rounded-t-lg">
-        <div class="flex gap-4 px-6 py-4 overflow-x-auto">
-          <button class="tab-btn active px-4 py-2 rounded transition whitespace-nowrap" data-tab="users">Users</button>
-          <button class="tab-btn px-4 py-2 rounded transition whitespace-nowrap" data-tab="lists">Lists & Permissions</button>
-          <button class="tab-btn px-4 py-2 rounded transition whitespace-nowrap" data-tab="zones">Zone Mapping</button>
-          <button class="tab-btn px-4 py-2 rounded transition whitespace-nowrap" data-tab="sync">Synchronization</button>
+      <div class="tabs-container">
+        <button class="profile-tab active" data-tab="users" onclick="switchTab('users')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+          Benutzer
+        </button>
+        <button class="profile-tab" data-tab="categories" onclick="switchTab('categories')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><path d="M12 2v20M2 12h20"></path><rect x="4" y="4" width="7" height="7"></rect><rect x="13" y="4" width="7" height="7"></rect><rect x="4" y="13" width="7" height="7"></rect><rect x="13" y="13" width="7" height="7"></rect></svg>
+          Kategorien
+        </button>
+        <button class="profile-tab" data-tab="lists" onclick="switchTab('lists')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+          Listen
+        </button>
+        <button class="profile-tab" data-tab="permissions" onclick="switchTab('permissions')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          Berechtigungen
+        </button>
+        <button class="profile-tab" data-tab="sync" onclick="switchTab('sync')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0114.85-3.36M20.49 15A9 9 0 015.64 5.64"></path></svg>
+          Synchronisierung
+        </button>
+        <button class="profile-tab" data-tab="ha" onclick="switchTab('ha')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          Home Assistant
+        </button>
+      </div>
+
+      <!-- Users Tab -->
+      <div id="users-tab" class="profile-tab-content active">
+        <div class="data-section">
+          <div class="header-row">
+            <h2>Benutzer</h2>
+            <button id="addUserBtn" class="btn btn-primary" onclick="openUserModal()" style="width: auto; display: flex; align-items: center; gap: var(--spacing-sm);"><span style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">+</span> Neu</button>
+          </div>
+          <div id="usersList" style="overflow-x: auto;">
+            <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
+          </div>
         </div>
       </div>
 
-      <!-- Tab Content -->
-      <div class="bg-white p-6 rounded-b-lg shadow">
-
-        <!-- USERS TAB -->
-        <div id="users" class="tab-content active">
-          <h2 class="text-xl font-semibold mb-4">Benutzerverwaltung</h2>
-
-          <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 class="font-semibold mb-3">Neuen Benutzer erstellen</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <input 
-                type="text" 
-                id="newUsername" 
-                placeholder="Benutzername"
-                class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-              >
-              <input 
-                type="password" 
-                id="newPassword" 
-                placeholder="Passwort (min. 8 Zeichen)"
-                class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
-              >
-              <label class="flex items-center gap-2 px-3 py-2">
-                <input type="checkbox" id="newIsAdmin">
-                <span>Admin</span>
-              </label>
-              <button id="createUserBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
-                ➕ Erstellen
-              </button>
-            </div>
-            <div id="userMessage" class="mt-3 hidden p-2 rounded text-sm"></div>
+      <!-- Lists Tab -->
+      <div id="lists-tab" class="profile-tab-content">
+        <div class="data-section">
+          <div class="header-row">
+            <h2>Listen</h2>
           </div>
+          <div id="listsList" style="overflow-x: auto;">
+            <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
+          </div>
+        </div>
+      </div>
 
-          <table class="w-full text-sm">
-            <thead class="bg-gray-100 border-b-2 border-gray-300">
-              <tr>
-                <th class="text-left px-4 py-2">Benutzername</th>
-                <th class="text-left px-4 py-2">Admin</th>
-                <th class="text-left px-4 py-2">Erstellt</th>
-                <th class="text-center px-4 py-2">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody id="usersList" class="divide-y"></tbody>
-          </table>
+      <!-- Permissions Tab -->
+      <div id="permissions-tab" class="profile-tab-content">
+        <div class="data-section">
+          <h2 class="mb-lg">Berechtigungen</h2>
+          <div id="permissionsList" style="overflow-x: auto;">
+            <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Categories Tab -->
+      <div id="categories-tab" class="profile-tab-content">
+        <div class="data-section">
+          <div class="header-row">
+            <h2>Kategorien</h2>
+            <button class="btn btn-primary" onclick="openCategoryModal()" style="width: auto; display: flex; align-items: center; gap: var(--spacing-sm);"><span style="width: 20px; height: 20px; display: flex; align-items: center; justify-content: center;">+</span> Neu</button>
+          </div>
+          <div id="categoriesList" style="overflow-x: auto;">
+            <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sync Tab -->
+      <div id="sync-tab" class="profile-tab-content">
+        <div class="data-section">
+          <div class="header-row">
+            <h2>Synchronisierung</h2>
+            <button id="syncAllBtn" class="btn btn-primary btn-small">Alle synchronisieren</button>
+          </div>
+          <div id="syncStatus" style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Bereit</div>
         </div>
 
-        <!-- LISTS & PERMISSIONS TAB -->
-        <div id="lists" class="tab-content">
-          <h2 class="text-xl font-semibold mb-4">Listen & Berechtigungen</h2>
-
-          <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 class="font-semibold mb-3">Neue Berechtigung hinzufügen</h3>
-            <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
-              <select id="permUser" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
-                <option value="">Benutzer wählen...</option>
-              </select>
-              <select id="permList" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
-                <option value="">Liste wählen...</option>
-              </select>
-              <div class="flex gap-2">
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" id="permRead" checked>
-                  <span>Lesen</span>
-                </label>
-                <label class="flex items-center gap-2">
-                  <input type="checkbox" id="permWrite" checked>
-                  <span>Schreiben</span>
-                </label>
-              </div>
-              <button id="addPermBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
-                ➕ Hinzufügen
-              </button>
-            </div>
-            <div id="permMessage" class="mt-3 hidden p-2 rounded text-sm"></div>
+        <div class="data-section">
+          <h3 class="mb-lg">Home Assistant Listen</h3>
+          <div id="haListsList" style="overflow-x: auto;">
+            <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-gray-500);">Lädt...</div>
           </div>
-
-          <table class="w-full text-sm">
-            <thead class="bg-gray-100 border-b-2 border-gray-300">
-              <tr>
-                <th class="text-left px-4 py-2">Benutzer</th>
-                <th class="text-left px-4 py-2">Liste</th>
-                <th class="text-left px-4 py-2">HA Entity</th>
-                <th class="text-center px-4 py-2">Lesen</th>
-                <th class="text-center px-4 py-2">Schreiben</th>
-                <th class="text-center px-4 py-2">Aktionen</th>
-              </tr>
-            </thead>
-            <tbody id="permissionsList" class="divide-y"></tbody>
-          </table>
         </div>
+      </div>
 
-        <!-- ZONES TAB -->
-        <div id="zones" class="tab-content">
-          <h2 class="text-xl font-semibold mb-6">Zone Mapping</h2>
-
-          <!-- User-Person Mapping Section -->
-          <div class="mb-8">
-            <h3 class="text-lg font-semibold mb-4">Benutzer zu Home Assistant Personen zuordnen</h3>
-            <div class="grid gap-4">
-              <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p class="text-sm text-gray-600 mb-3">
-                  Hier können Sie Benutzer mit Home Assistant Personen-Entitäten verbinden, um standortbasierte Listen-Vorschläge zu aktivieren.
-                </p>
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <select id="userSelect" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
-                    <option value="">Benutzer wählen...</option>
-                  </select>
-                  <select id="personSelect" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
-                    <option value="">HA-Person wählen...</option>
-                  </select>
-                  <button id="mapUserBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700">
-                    🔗 Zuordnen
-                  </button>
-                </div>
-                <div id="userMapMessage" class="mt-3 hidden p-2 rounded text-sm"></div>
-              </div>
+      <!-- Home Assistant Tab -->
+      <div id="ha-tab" class="profile-tab-content">
+        <div class="data-section">
+          <h2>Home Assistant Verbindung</h2>
+          <form id="changeHATokenForm" onsubmit="window.submitChangeHAToken(event)">
+            <p style="color: var(--color-gray-600); font-size: 0.9rem; margin-bottom: var(--spacing-md);">Konfigurieren Sie Ihre Home Assistant Instanz für die Liste-Synchronisierung.</p>
+            
+            <div style="margin-bottom: var(--spacing-md);">
+              <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Home Assistant URL</label>
+              <input type="url" name="haUrl" placeholder="https://homeassistant.local:8123" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+              <p style="font-size: 0.8rem; color: var(--color-gray-500); margin-top: 4px;">z.B. https://192.168.1.100:8123</p>
             </div>
+            <div style="margin-bottom: var(--spacing-lg);">
+              <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Home Assistant Token</label>
+              <input type="password" name="haToken" placeholder="Langlebiger Zugriffstoken" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 14px; font-family: monospace;">
+              <p style="font-size: 0.8rem; color: var(--color-gray-500); margin-top: 4px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 14px; height: 14px; display: inline; margin-right: 4px; vertical-align: middle;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>Profil → Sicherheit → Langlebige Zugriffstoken. Token wird verschlüsselt gespeichert.</p>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: 100%;">HA-Verbindung speichern</button>
+            <div id="profileMessage" style="margin-top: var(--spacing-lg); padding: var(--spacing-md); border-radius: var(--radius-md); display: none;"></div>
+          </form>
+        </div>
+      </div>
 
-            <table class="w-full text-sm mt-4">
-              <thead class="bg-gray-100 border-b-2 border-gray-300">
-                <tr>
-                  <th class="text-left px-4 py-2">Benutzername</th>
-                  <th class="text-left px-4 py-2">HA-Person Entity</th>
-                  <th class="text-left px-4 py-2">Status</th>
-                  <th class="text-center px-4 py-2">Aktionen</th>
-                </tr>
-              </thead>
-              <tbody id="userPersonList" class="divide-y"></tbody>
-            </table>
+      <!-- User Modal -->
+      <div id="userModal" class="modal-overlay hidden" onclick="if(event.target === this) closeUserModal()">
+        <div class="modal">
+          <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span id="userModalTitle">Neuer Benutzer</span>
+            <button onclick="closeUserModal()" style="background: none; border: none; cursor: pointer; color: var(--color-gray-500); padding: 8px; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 20px; height: 20px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
           </div>
+          <div class="modal-body">
+            <form id="userForm" onsubmit="submitUserForm(event)">
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Benutzername</label>
+                <input type="text" id="userUsername" placeholder="Benutzername" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);" required>
+              </div>
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Passwort</label>
+                <input type="password" id="userPassword" placeholder="Passwort (min. 8 Zeichen)" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);" required minlength="8">
+              </div>
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: flex; align-items: center; gap: var(--spacing-sm); cursor: pointer;">
+                  <input type="checkbox" id="userIsAdmin" style="width: 18px; height: 18px; cursor: pointer;">
+                  <span>Admin-Rechte</span>
+                </label>
+              </div>
+              <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end;">
+                <button type="button" onclick="closeUserModal()" class="btn btn-secondary">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Speichern</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
 
-          <!-- List-Zone Mapping Section -->
-          <div class="mt-8">
-            <h3 class="text-lg font-semibold mb-4">Listen mit Zonen verknüpfen</h3>
-            <div class="p-4 bg-blue-50 border border-blue-200 rounded-lg mb-4">
-              <p class="text-sm text-gray-600 mb-3">
-                Wählen Sie eine Liste und ordnen Sie die Zonen/Orte zu, in denen diese Liste relevant ist.
-              </p>
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-                <select id="listSelect" class="px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
-                  <option value="">Liste wählen...</option>
+      <!-- Confirm Dialog Modal -->
+      <div id="confirmModal" class="modal-overlay hidden" onclick="if(event.target === this) cancelConfirmDialog()">
+        <div class="modal">
+          <div class="modal-header" id="confirmModalTitle">Bestätigung erforderlich</div>
+          <div class="modal-body">
+            <p id="confirmModalMessage" style="margin-bottom: var(--spacing-lg); color: var(--color-gray-700); line-height: 1.6;"></p>
+            <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end;">
+              <button id="confirmModalCancel" class="btn btn-secondary" onclick="cancelConfirmDialog()">Abbrechen</button>
+              <button id="confirmModalConfirm" class="btn btn-danger" onclick="acceptConfirmDialog()">Bestätigen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Zone Modal -->
+      <div id="zoneModal" class="modal-overlay hidden" onclick="if(event.target === this) closeZoneModal()">
+        <div class="modal">
+          <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center;">
+            <span id="zoneModalTitle">Neue Zone</span>
+            <button onclick="closeZoneModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-gray-500);">×</button>
+          </div>
+          <div class="modal-body">
+            <form id="zoneForm" onsubmit="submitZoneForm(event)">
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Liste</label>
+                <select id="zoneListId" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);" required></select>
+              </div>
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Zone Entity ID</label>
+                <input type="text" id="zoneEntityId" placeholder="z.B. zone.bedroom" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);" required>
+              </div>
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Zone Name</label>
+                <input type="text" id="zoneName" placeholder="z.B. Schlafzimmer" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);" required>
+              </div>
+              <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end;">
+                <button type="button" onclick="closeZoneModal()" class="btn btn-secondary">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Speichern</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Modal -->
+      <div id="categoryModal" class="modal-overlay hidden" onclick="if(event.target === this) closeCategoryModal()">
+        <div class="modal">
+          <div class="modal-header">
+            <span id="categoryModalTitle">Neue Kategorie</span>
+            <button onclick="closeCategoryModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-gray-500);">×</button>
+          </div>
+          <div class="modal-body">
+            <form id="categoryForm" onsubmit="submitCategoryForm(event)">
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Kategorie-Name</label>
+                <input type="text" id="categoryName" placeholder="z.B. Drogerie, Lebensmittel" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);" required>
+              </div>
+              <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end;">
+                <button type="button" onclick="closeCategoryModal()" class="btn btn-secondary">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Speichern</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- List Editor Modal -->
+      <div id="listEditorModal" class="modal-overlay hidden" onclick="if(event.target === this) closeListEditorModal()">
+        <div class="modal">
+          <div class="modal-header">
+            <span id="listEditorTitle">Liste bearbeiten</span>
+            <button onclick="closeListEditorModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-gray-500);">×</button>
+          </div>
+          <div class="modal-body">
+            <form id="listEditorForm" onsubmit="submitListEditorForm(event)">
+              <input type="hidden" id="listEditorId">
+              
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Listen-Name</label>
+                <input type="text" id="listEditorName" disabled style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); background: var(--color-gray-50);">
+              </div>
+
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Kategorie</label>
+                <select id="listEditorCategory" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);">
+                  <option value="">-- Keine Kategorie --</option>
                 </select>
-                <div class="flex gap-2">
-                  <select id="zoneSelect" class="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500">
-                    <option value="">Zone wählen...</option>
-                  </select>
-                  <button id="addZoneBtn" class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 whitespace-nowrap">
-                    ➕ Hinzufügen
-                  </button>
+              </div>
+
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Farbe</label>
+                <div style="display: flex; gap: var(--spacing-md);">
+                  <input type="color" id="listEditorColor" style="width: 60px; height: 40px; border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); cursor: pointer;" oninput="syncListEditorColor()">
+                  <input type="text" id="listEditorColorText" placeholder="#2563eb" style="flex: 1; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);" oninput="syncListEditorColor()">
                 </div>
               </div>
-              <div id="zoneMessage" class="p-2 rounded text-sm hidden"></div>
-            </div>
 
-            <div id="selectedListInfo" class="hidden mb-4 p-3 bg-gray-50 border border-gray-200 rounded">
-              <h4 class="font-semibold mb-2">Zonenverbindungen für: <span id="selectedListName"></span></h4>
-              <div id="listZonesList" class="space-y-2"></div>
-            </div>
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 600;">Icon wählen</label>
+                <div id="listIconGrid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(60px, 1fr)); gap: var(--spacing-sm);">
+                  <!-- Icons werden hier via JavaScript eingefügt -->
+                </div>
+                <input type="hidden" id="listEditorIcon">
+              </div>
+
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-md); font-weight: 600;">Mit Nutzern teilen</label>
+                <div id="listEditorUsers" style="max-height: 200px; overflow-y: auto; border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); padding: var(--spacing-md); background: var(--bg-surface-alt);">
+                  <!-- User checkboxes werden hier via JavaScript eingefügt -->
+                </div>
+              </div>
+
+              <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end;">
+                <button type="button" onclick="closeListEditorModal()" class="btn btn-secondary">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Speichern</button>
+              </div>
+            </form>
           </div>
         </div>
-
-        <!-- SYNC TAB -->
-        <div id="sync" class="tab-content">
-          <h2 class="text-xl font-semibold mb-4">Home Assistant Synchronisation</h2>
-
-          <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <h3 class="font-semibold mb-3">Listen von Home Assistant aktualisieren</h3>
-            <p class="text-sm text-gray-600 mb-3">
-              Klicke um alle Listen und Artikel aus Home Assistant zu synchronisieren.
-            </p>
-            <button id="syncAllBtn" class="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
-              Sync All Lists
-            </button>
-            <div id="syncMessage" class="mt-3 hidden p-3 rounded text-sm"></div>
-          </div>
-
-          <h3 class="font-semibold mb-3">Einzelne Listen synchronisieren</h3>
-          <table class="w-full text-sm">
-            <thead class="bg-gray-100 border-b-2 border-gray-300">
-              <tr>
-                <th class="text-left px-4 py-2">Listenname</th>
-                <th class="text-left px-4 py-2">HA Entity</th>
-                <th class="text-center px-4 py-2">Artikel</th>
-                <th class="text-center px-4 py-2">Aktion</th>
-              </tr>
-            </thead>
-            <tbody id="listsSyncTable" class="divide-y"></tbody>
-          </table>
-        </div>
-
       </div>
-    </div>
+
+      <!-- User HA-Person Modal -->
+      <div id="userPersonModal" class="modal-overlay hidden" onclick="if(event.target === this) closeUserPersonModal()">
+        <div class="modal">
+          <div class="modal-header">
+            <span id="userPersonModalTitle">HA-Person zuordnen</span>
+            <button onclick="closeUserPersonModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-gray-500);">×</button>
+          </div>
+          <div class="modal-body">
+            <form id="userPersonForm" onsubmit="submitUserPersonForm(event)">
+              <input type="hidden" id="userPersonUserId">
+              
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Benutzer</label>
+                <input type="text" id="userPersonUsername" disabled style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); background: var(--color-gray-50);">
+              </div>
+
+              <div style="margin-bottom: var(--spacing-lg);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">HA-Person</label>
+                <select id="userPersonSelect" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);">
+                  <option value="">-- Keine Person --</option>
+                </select>
+              </div>
+
+              <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end;">
+                <button type="button" onclick="closeUserPersonModal()" class="btn btn-secondary">Abbrechen</button>
+                <button type="submit" class="btn btn-primary">Speichern</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Category Zones Modal -->
+      <div id="categoryZonesModal" class="modal-overlay hidden" onclick="if(event.target === this) closeCategoryZonesModal()">
+        <div class="modal">
+          <div class="modal-header">
+            <span id="categoryZonesModalTitle">Zonen zuordnen</span>
+            <button onclick="closeCategoryZonesModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--color-gray-500);">×</button>
+          </div>
+          <div class="modal-body">
+            <div id="categoryZonesList" style="margin-bottom: var(--spacing-lg);">
+              <!-- Zones list will be populated here -->
+            </div>
+            <form id="addCategoryZoneForm" onsubmit="submitAddCategoryZone(event)">
+              <h3 style="margin-bottom: var(--spacing-md); font-size: 0.95rem; font-weight: 600;">Neue Zone hinzufügen</h3>
+              <div style="margin-bottom: var(--spacing-md);">
+                <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600;">Zone suchen</label>
+                <input type="text" id="categoryZoneSearch" placeholder="z.B. Schlafzimmer, Wohnzimmer..." style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;" oninput="filterCategoryZones()">
+              </div>
+              <div style="margin-bottom: var(--spacing-lg); max-height: 300px; overflow-y: auto; border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);">
+                <div id="categoryZonesList" style="padding: var(--spacing-md);">
+                  <div style="text-align: center; color: var(--color-gray-500);">Lädt Zonen...</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: var(--spacing-md); justify-content: flex-end;">
+                <button type="button" onclick="closeCategoryZonesModal()" class="btn btn-secondary">Fertig</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- Profile Modal -->
+      <div id="profileModal" class="modal-overlay hidden" onclick="if(event.target === this) closeProfileModal()">
+        <div class="modal" style="max-width: 600px;">
+          <div class="modal-header">
+            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 20px; height: 20px; display: inline; margin-right: 8px; vertical-align: middle;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>Mein Profil</span>
+            <button onclick="closeProfileModal()" style="background: none; border: none; cursor: pointer; color: var(--color-gray-500); padding: 8px; display: flex; align-items: center; justify-content: center;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 20px; height: 20px;"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+          </div>
+          
+          <!-- Profile Tabs -->
+          <div class="tabs-container">
+            <button class="profile-tab active" onclick="window.switchProfileTab('account')" id="profileTabAccount">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              Konto
+            </button>
+            <button class="profile-tab" onclick="window.switchProfileTab('password')" id="profileTabPassword">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+              Sicherheit
+            </button>
+            <button class="profile-tab" onclick="window.switchProfileTab('twofa')" id="profileTabTwoFA">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              2FA
+            </button>
+          </div>
+          
+          <div class="modal-body" style="max-height: 500px; overflow-y: auto;">
+            
+            <!-- TAB 1: Account -->
+            <div id="profileTab-account" class="profile-tab-content active">
+              <div style="margin-bottom: var(--spacing-md); padding: var(--spacing-md); background: var(--color-gray-50); border-radius: var(--radius-md); border-left: 4px solid var(--color-primary);">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-sm);">Aktueller Benutzer</p>
+                <p style="margin: 0; font-size: 1.1rem; font-weight: 600;" id="currentUsername">-</p>
+              </div>
+
+              <form id="changeUsernameForm" onsubmit="window.submitChangeUsername(event)">
+                <h3 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1rem;">Benutzername ändern</h3>
+                <div style="margin-bottom: var(--spacing-md);">
+                  <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Neuer Benutzername</label>
+                  <input type="text" name="newUsername" placeholder="z.B. andre" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: var(--spacing-md);">
+                  <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Passwort bestätigen</label>
+                  <input type="password" name="password" placeholder="••••••••" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Speichern</button>
+              </form>
+            </div>
+
+            <!-- TAB 2: Password/Security -->
+            <div id="profileTab-password" class="profile-tab-content">
+              <form id="changePasswordForm" onsubmit="window.submitChangePassword(event)">
+                <h3 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1rem;">Passwort ändern</h3>
+                <p style="color: var(--color-gray-600); font-size: 0.9rem; margin-bottom: var(--spacing-md);">Aktualisieren Sie Ihr Passwort regelmäßig für bessere Sicherheit.</p>
+                
+                <div style="margin-bottom: var(--spacing-md);">
+                  <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Aktuelles Passwort</label>
+                  <input type="password" name="currentPassword" placeholder="••••••••" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+                </div>
+                <div style="margin-bottom: var(--spacing-md);">
+                  <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Neues Passwort (min. 8 Zeichen)</label>
+                  <input type="password" name="newPassword" placeholder="••••••••" required minlength="8" style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 16px;">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Passwort ändern</button>
+              </form>
+            </div>
+
+            <!-- TAB 3: Two-Factor Authentication -->
+            <div id="profileTab-twofa" class="profile-tab-content">
+              <h3 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 1rem;">Zwei-Faktor-Authentifizierung (2FA)</h3>
+              <p style="color: var(--color-gray-600); font-size: 0.9rem; margin-bottom: var(--spacing-lg);">Schützen Sie Ihren Account mit einem zusätzlichen Sicherheitscode.</p>
+              
+              <div id="twoFAStatus" style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-gray-50); border-radius: var(--radius-md); border-left: 4px solid var(--color-warning);">
+                <p style="margin: 0; font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-sm);">Status</p>
+                <p style="margin: 0; font-size: 1rem; font-weight: 600;" id="twoFAStatusText">Wird geladen...</p>
+              </div>
+
+              <div id="twoFADisabled" style="display: none;">
+                <button type="button" class="btn btn-primary" onclick="window.initiateTwoFASetup()" style="width: 100%;">2FA Aktivieren</button>
+              </div>
+
+              <div id="twoFASetupForm" style="display: none;">
+                <h4 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 0.95rem;">1. Scannen Sie den QR-Code</h4>
+                <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Verwenden Sie eine Authentifizierungs-App wie Google Authenticator oder Authy.</p>
+                <div style="text-align: center; margin-bottom: var(--spacing-lg);">
+                  <div id="twoFAQRCode" style="display: inline-block; padding: var(--spacing-md); background: white; border-radius: var(--radius-md);"></div>
+                </div>
+
+                <h4 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 0.95rem;">2. Geben Sie den 6-stelligen Code ein</h4>
+                <form id="twoFAVerifyForm" onsubmit="window.verifyTwoFACode(event)">
+                  <div style="margin-bottom: var(--spacing-md);">
+                    <label style="display: block; margin-bottom: var(--spacing-sm); font-weight: 600; font-size: 0.9rem;">Verifikationscode</label>
+                    <input type="text" id="twoFAVerifyCode" pattern="[0-9]{6}" maxlength="6" placeholder="000000" required style="width: 100%; padding: var(--spacing-md); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md); font-size: 24px; text-align: center; letter-spacing: 8px;" inputmode="numeric">
+                  </div>
+
+                  <h4 style="margin: var(--spacing-lg) 0 var(--spacing-md) 0; font-size: 0.95rem;">3. Speichern Sie die Backup-Codes</h4>
+                  <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Falls Sie Ihren Authentifizierungsgerät verlieren, können Sie sich mit diesen Codes anmelden.</p>
+                  <div id="twoFABackupCodes" style="background: var(--color-gray-100); padding: var(--spacing-md); border-radius: var(--radius-md); margin-bottom: var(--spacing-md); font-family: monospace; font-size: 0.85rem; line-height: 1.8; max-height: 150px; overflow-y: auto;"></div>
+
+                  <div style="display: flex; gap: var(--spacing-md); margin-top: var(--spacing-lg);">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">2FA Aktivieren</button>
+                    <button type="button" class="btn btn-secondary" onclick="window.cancelTwoFASetup()" style="flex: 1;">Abbrechen</button>
+                  </div>
+                </form>
+              </div>
+
+              <div id="twoFAEnabled" style="display: none;">
+                <div style="margin-bottom: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-success)-50; border-radius: var(--radius-md); border-left: 4px solid var(--color-success);">
+                  <p style="margin: 0; font-size: 0.9rem; color: var(--color-success); font-weight: 600;">✓ 2FA ist aktiv</p>
+                </div>
+
+                <div style="margin-bottom: var(--spacing-lg);">
+                  <h4 style="margin: 0 0 var(--spacing-md) 0; font-size: 0.95rem;">Backup-Codes regenerieren</h4>
+                  <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Sie können jederzeit neue Backup-Codes generieren.</p>
+                  <button type="button" class="btn btn-secondary" onclick="window.regenerateBackupCodes()" style="width: 100%;">Neue Backup-Codes generieren</button>
+                </div>
+
+                <div>
+                  <h4 style="margin: 0 0 var(--spacing-md) 0; font-size: 0.95rem;">2FA Deaktivieren</h4>
+                  <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Wenn Sie 2FA deaktivieren, benötigen Sie nur noch Ihr Passwort zum Anmelden.</p>
+                  <button type="button" class="btn btn-danger" onclick="window.disableTwoFA()" style="width: 100%;">2FA Deaktivieren</button>
+                </div>
+              </div>
+
+              <div id="twoFAMessage" style="margin-top: var(--spacing-lg); padding: var(--spacing-md); border-radius: var(--radius-md); display: none;"></div>
+            </div>
+
+            <div id="profileMessage" style="margin-top: var(--spacing-lg); padding: var(--spacing-md); border-radius: var(--radius-md); display: none;"></div>
+
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
 
   <script>
-    const token = localStorage.getItem('token');
+    let token = localStorage.getItem('token');
+    let user = JSON.parse(localStorage.getItem('user') || '{}');
+
+    const $ = (id) => document.getElementById(id);
+
     if (!token) {
       window.location.href = '/setup.html';
     }
 
-    // API Helper
-    async function apiCall(method, url, body = null) {
+    // Tab switching - make it globally available
+    // Helper function to update floating tab indicator position
+    const updateTabIndicator = function(container) {
+      const activeBtn = container.querySelector('.profile-tab.active');
+      
+      if (!activeBtn || !container) return;
+      
+      // Get accurate position relative to container
+      const containerRect = container.getBoundingClientRect();
+      const btnRect = activeBtn.getBoundingClientRect();
+      
+      // Position relative to container (getBoundingClientRect already accounts for scrolling)
+      const left = btnRect.left - containerRect.left;
+      const width = btnRect.width;
+      
+      // Set CSS custom properties for the pseudo-element animation
+      container.style.setProperty('--tab-indicator-left', `${left}px`);
+      container.style.setProperty('--tab-indicator-width', `${width}px`);
+    };
+
+    window.switchTab = function(tabName) {
+      console.log('[switchTab] Called with:', tabName);
+      
+      // Hide all tabs
+      document.querySelectorAll('.profile-tab-content').forEach(el => el.classList.remove('active'));
+      
+      // Deactivate all buttons
+      document.querySelectorAll('.profile-tab').forEach(el => el.classList.remove('active'));
+      
+      // Show the selected tab
+      const tabEl = document.getElementById(`${tabName}-tab`);
+      if (tabEl) {
+        tabEl.classList.add('active');
+        console.log('[switchTab] Activated tab element:', tabName);
+      } else {
+        console.warn('[switchTab] Tab element not found:', `${tabName}-tab`);
+      }
+      
+      // Activate the clicked button - find by data-tab attribute
+      const btnEl = document.querySelector(`[data-tab="${tabName}"]`);
+      if (btnEl) {
+        btnEl.classList.add('active');
+        
+        // Update floating indicator
+        const container = btnEl.closest('.tabs-container');
+        if (container) updateTabIndicator(container);
+      }
+
+      // Load data for this tab
+      console.log('[switchTab] Loading data for tab:', tabName);
+      if (tabName === 'users') {
+        console.log('[switchTab] Calling loadUsers');
+        loadUsers();
+      }
+      else if (tabName === 'categories') {
+        console.log('[switchTab] Calling loadCategories');
+        loadCategories();
+      }
+      else if (tabName === 'lists') {
+        console.log('[switchTab] Calling loadListsForEditing');
+        loadListsForEditing();
+      }
+      else if (tabName === 'permissions') {
+        console.log('[switchTab] Calling loadPermissions');
+        loadPermissions();
+      }
+      else if (tabName === 'sync') {
+        console.log('[switchTab] Calling loadListsForSync');
+        loadListsForSync();
+      }
+      else if (tabName === 'ha') {
+        console.log('[switchTab] Home Assistant tab - no data loading needed');
+      } else {
+        console.warn('[switchTab] Unknown tab:', tabName);
+      }
+    };
+
+    // API Call - make globally available
+    window.apiCall = async function(method, url, body = null) {
       const options = {
         method,
-        headers: { 
+        headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       };
       if (body) options.body = JSON.stringify(body);
 
-      const response = await fetch(url, options);
-      if (response.status === 401) {
-        localStorage.removeItem('token');
-        window.location.href = '/setup.html';
+      try {
+        const response = await fetch(url, options);
+        
+        // Token auto-renewal: check for new token in response header
+        const newToken = response.headers.get('x-new-token');
+        if (newToken) {
+          localStorage.setItem('token', newToken);
+          window.token = newToken;
+          console.log('[TOKEN] Auto-renewed for next 30 days');
+        }
+        
+        if (response.status === 401) {
+          window.location.href = '/setup.html';
+          return null;
+        }
+        return await response.json();
+      } catch (error) {
+        console.error('API Error:', error);
+        return null;
       }
-      return await response.json();
     }
 
-    // Show message
-    function showMessage(elId, text, type = 'success') {
-      const el = document.getElementById(elId);
-      el.textContent = text;
-      el.className = `mt-3 p-2 rounded text-sm ${
-        type === 'error' ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-      }`;
-      el.classList.remove('hidden');
+    // SVG Icons helper
+    window.icons = {
+      edit: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>`,
+      trash: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`,
+      plus: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>`,
+      user: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>`,
+      lock: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>`,
+      home: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>`,
+      close: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>`,
+      menu: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>`,
+      logout: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14"></path><polyline points="16 8 16 4 8 4 8 4"></polyline><line x1="16" y1="12" x2="2" y2="12"></line></svg>`
+    };
+
+    window.listIcons = {
+      cart: { name: 'Einkaufen', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>` },
+      home: { name: 'Haushalt', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>` },
+      pill: { name: 'Drogerie', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M19 4H5c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z"></path><circle cx="9" cy="10" r="1.5"></circle><circle cx="15" cy="10" r="1.5"></circle><circle cx="9" cy="16" r="1.5"></circle><circle cx="15" cy="16" r="1.5"></circle></svg>` },
+      sprout: { name: 'Garten', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><ellipse cx="12" cy="13" rx="5" ry="8"></ellipse><path d="M12 13v8"></path><path d="M8 11l-2-2m8-2l2-2M6 17l-2 2m12-2l2 2M12 1v4"></path></svg>` },
+      wrench: { name: 'Werkzeuge', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 1 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>` },
+      book: { name: 'Rezepte', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>` },
+      heart: { name: 'Lieblingsdinge', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>` },
+      gift: { name: 'Geschenke', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="9" x2="12" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line></svg>` },
+      briefcase: { name: 'Büro', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect><path d="M16 7v-2a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"></path></svg>` },
+      activity: { name: 'Fitness', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>` },
+      calendar: { name: 'Planung', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>` },
+      star: { name: 'Favoriten', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polygon points="12 2 15.09 10.26 24 10.27 17.18 16.70 20.09 24.96 12 18.53 3.91 24.96 6.82 16.70 0 10.27 8.91 10.26 12 2"></polygon></svg>` },
+      zap: { name: 'Elektronik', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>` },
+      apple: { name: 'Lebensmittel', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5m-3-2h6M9 9l.5-2.5L12 5l2.5 1.5L15 9"></path></svg>` },
+      box: { name: 'Sonstiges', svg: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>` }
+    };
+
+    // ===== USER MANAGEMENT =====
+    
+    // User Modal Functions
+    window.openUserModal = function() {
+      $('userModalTitle').textContent = 'Neuer Benutzer';
+      $('userUsername').value = '';
+      $('userUsername').disabled = false;
+      $('userPassword').value = '';
+      $('userPassword').required = true;
+      $('userPassword').placeholder = 'Passwort (min. 8 Zeichen)';
+      $('userIsAdmin').checked = false;
+      $('userForm').dataset.userId = '';
+      $('userModal').classList.remove('hidden');
     }
 
-    // Tabs
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        e.target.classList.add('active');
-        document.getElementById(e.target.dataset.tab).classList.add('active');
-      });
-    });
-
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      localStorage.removeItem('token');
-      window.location.href = '/setup.html';
-    });
-
-    // ============ USERS TAB ============
-
-    async function loadUsers() {
-      const data = await apiCall('GET', '/api/admin/users');
-      const tbody = document.getElementById('usersList');
-      tbody.innerHTML = '';
-
-      data.forEach(user => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-4 py-2">${user.username}</td>
-          <td class="px-4 py-2">${user.is_admin ? 'Admin' : 'User'}</td>
-          <td class="px-4 py-2">${new Date(user.created_at).toLocaleDateString('de')}</td>
-          <td class="px-4 py-2 text-center">
-            <button class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200" 
-                    onclick="deleteUser(${user.id})">
-              Delete
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+    window.editUser = function(userId, username, isAdmin) {
+      $('userModalTitle').textContent = 'Benutzer bearbeiten: ' + username;
+      $('userUsername').value = username;
+      $('userUsername').disabled = true;
+      $('userPassword').value = '';
+      $('userPassword').required = false;
+      $('userPassword').placeholder = 'Neues Passwort (optional, min. 8 Zeichen)';
+      $('userIsAdmin').checked = isAdmin;
+      $('userForm').dataset.userId = userId;
+      $('userModal').classList.remove('hidden');
     }
 
-    document.getElementById('createUserBtn').addEventListener('click', async () => {
-      const username = document.getElementById('newUsername').value;
-      const password = document.getElementById('newPassword').value;
-      const isAdmin = document.getElementById('newIsAdmin').checked;
+    window.closeUserModal = function() {
+      $('userModal').classList.add('hidden');
+    }
 
-      if (!username || !password) {
-        showMessage('userMessage', 'Felder ausfüllen', 'error');
-        return;
-      }
-
-      const result = await apiCall('POST', '/api/admin/users', { username, password, isAdmin });
+    window.submitUserForm = async function(e) {
+      e.preventDefault();
       
-      if (result.error) {
-        showMessage('userMessage', result.error, 'error');
+      const userId = $('userForm').dataset.userId;
+      const isAdmin = $('userIsAdmin').checked;
+      const password = $('userPassword').value;
+      
+      let result;
+      
+      if (userId) {
+        // Edit mode
+        const body = { isAdmin };
+        if (password) {
+          body.password = password;
+        }
+        result = await apiCall('PATCH', `/api/admin/users/${userId}`, body);
       } else {
-        document.getElementById('newUsername').value = '';
-        document.getElementById('newPassword').value = '';
-        document.getElementById('newIsAdmin').checked = false;
-        showMessage('userMessage', `User "${username}" created`);
-        loadUsers();
+        // Create mode
+        const username = $('userUsername').value;
+        result = await apiCall('POST', '/api/admin/users', {
+          username,
+          password,
+          isAdmin
+        });
       }
-    });
-
-    async function deleteUser(userId) {
-      if (!confirm('Wirklich löschen?')) return;
-      await apiCall('DELETE', `/api/admin/users/${userId}`);
-      loadUsers();
+      
+      if (result && (result.id || result.success)) {
+        closeUserModal();
+        loadUsers();
+      } else {
+        alert('Fehler beim Speichern des Benutzers');
+      }
     }
 
-    // ============ PERMISSIONS TAB ============
+    window.deleteUser = async function(userId) {
+      showConfirmDialog(
+        'Benutzer löschen',
+        'Möchten Sie diesen Benutzer wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.',
+        async () => {
+          const result = await apiCall('DELETE', `/api/admin/users/${userId}`);
+          if (result && result.success) {
+            loadUsers();
+          } else {
+            alert('Fehler beim Löschen des Benutzers');
+          }
+        }
+      );
+    }
 
-    async function loadPermissions() {
+    // Central Confirm Dialog System
+    let pendingConfirm = null;
+
+    window.showConfirmDialog = function(title, message, onConfirm, onCancel = null) {
+      pendingConfirm = { onConfirm, onCancel };
+      $('confirmModalTitle').textContent = title;
+      $('confirmModalMessage').textContent = message;
+      $('confirmModal').classList.remove('hidden');
+    }
+
+    window.acceptConfirmDialog = async function() {
+      if (pendingConfirm && pendingConfirm.onConfirm) {
+        $('confirmModal').classList.add('hidden');
+        await pendingConfirm.onConfirm();
+      }
+    }
+
+    window.cancelConfirmDialog = function() {
+      if (pendingConfirm && pendingConfirm.onCancel) {
+        pendingConfirm.onCancel();
+      }
+      $('confirmModal').classList.add('hidden');
+      pendingConfirm = null;
+    }
+
+    // Load Permissions - make globally available
+    window.loadPermissions = async function() {
       const data = await apiCall('GET', '/api/admin/permissions');
-      const tbody = document.getElementById('permissionsList');
-      tbody.innerHTML = '';
+      if (!data) return;
 
-      data.forEach(perm => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-4 py-2">${perm.username}</td>
-          <td class="px-4 py-2">${perm.name}</td>
-          <td class="px-4 py-2 text-xs font-mono">${perm.ha_entity_id}</td>
-          <td class="px-4 py-2 text-center">${perm.can_read ? 'Yes' : 'No'}</td>
-          <td class="px-4 py-2 text-center">${perm.can_write ? 'Yes' : 'No'}</td>
-          <td class="px-4 py-2 text-center">
-            <button class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200" 
-                    onclick="deletePermission(${perm.id})">
-              🗑️ Entfernen
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
-      });
+      const html = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Benutzer</th>
+              <th>Liste</th>
+              <th>Lesen</th>
+              <th>Schreiben</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(p => `
+              <tr>
+                <td>${p.username}</td>
+                <td>${p.list_name}</td>
+                <td>${p.can_read ? 'Ja' : 'Nein'}</td>
+                <td>${p.can_write ? 'Ja' : 'Nein'}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      $('permissionsList').innerHTML = html;
     }
 
-    async function loadUsersAndLists() {
-      const users = await apiCall('GET', '/api/admin/users');
-      const lists = await apiCall('GET', '/api/lists');
+    // Load Zone Mappings - make globally available
+    window.loadZoneMappings = async function() {
+      const data = await apiCall('GET', '/api/admin/zones');
+      if (!data) return;
 
-      const userSelect = document.getElementById('permUser');
-      userSelect.innerHTML = '<option value="">Benutzer wählen...</option>';
-      users.forEach(u => {
-        const opt = document.createElement('option');
-        opt.value = u.id;
-        opt.textContent = u.username;
-        userSelect.appendChild(opt);
-      });
-
-      const listSelect = document.getElementById('permList');
-      listSelect.innerHTML = '<option value="">Liste wählen...</option>';
-      lists.forEach(l => {
-        const opt = document.createElement('option');
-        opt.value = l.id;
-        opt.textContent = l.name;
-        listSelect.appendChild(opt);
-      });
+      const html = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Liste</th>
+              <th>Zone</th>
+              <th>Zone Entity</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(z => `
+              <tr>
+                <td>${z.list_name}</td>
+                <td>${z.zone_name}</td>
+                <td><code style="background: var(--color-gray-100); padding: 2px 4px; border-radius: 3px; font-size: 0.8rem;">${z.zone_entity_id}</code></td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="icon-btn danger" title="Löschen" onclick="deleteZone(${z.id})">${window.icons.trash}</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      $('zonesList').innerHTML = html;
     }
 
-    document.getElementById('addPermBtn').addEventListener('click', async () => {
-      const userId = document.getElementById('permUser').value;
-      const listId = document.getElementById('permList').value;
-      const canRead = document.getElementById('permRead').checked;
-      const canWrite = document.getElementById('permWrite').checked;
+    // Zone Modal Functions
+    window.openZoneModal = async function() {
+      $('zoneModalTitle').textContent = 'Neue Zone';
+      $('zoneListId').value = '';
+      $('zoneEntityId').value = '';
+      $('zoneName').value = '';
+      $('zoneForm').dataset.zoneId = '';
+      
+      // Load lists for dropdown
+      const lists = await apiCall('GET', '/api/admin/lists-for-sync');
+      if (lists) {
+        $('zoneListId').innerHTML = '<option value="">-- Wählen Sie eine Liste --</option>' + 
+          lists.map(l => `<option value="${l.id}">${l.name}</option>`).join('');
+      }
+      
+      $('zoneModal').classList.remove('hidden');
+    }
 
-      if (!userId || !listId) {
-        showMessage('permMessage', 'Benutzer und Liste auswählen', 'error');
+    window.closeZoneModal = function() {
+      $('zoneModal').classList.add('hidden');
+    }
+
+    window.submitZoneForm = async function(e) {
+      e.preventDefault();
+      
+      const listId = $('zoneListId').value;
+      const zoneEntityId = $('zoneEntityId').value;
+      const zoneName = $('zoneName').value;
+      
+      const result = await apiCall('POST', '/api/admin/zones', {
+        listId: parseInt(listId),
+        zoneEntityId,
+        zoneName
+      });
+      
+      if (result && (result.id || result.success)) {
+        closeZoneModal();
+        loadZoneMappings();
+      } else {
+        alert('Fehler beim Erstellen der Zone');
+      }
+    }
+
+    window.deleteZone = async function(zoneId) {
+      showConfirmDialog(
+        'Zone löschen',
+        'Möchten Sie diese Zone wirklich löschen?',
+        async () => {
+          const result = await apiCall('DELETE', `/api/admin/zones/${zoneId}`);
+          if (result && result.success) {
+            loadZoneMappings();
+          } else {
+            alert('Fehler beim Löschen der Zone');
+          }
+        }
+      );
+    }
+
+    // ===== CATEGORY MANAGEMENT FUNCTIONS =====
+
+    // Load Categories - make globally available
+    window.loadCategories = async function() {
+      const data = await apiCall('GET', '/api/admin/categories');
+      if (!data) return;
+
+      const html = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Kategorie</th>
+              <th>Zonen</th>
+              <th>Listen</th>
+              <th>Erstellt</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(c => `
+              <tr>
+                <td><strong>${c.name}</strong></td>
+                <td>${c.zone_count || 0}</td>
+                <td>${c.list_count || 0}</td>
+                <td>${new Date(c.created_at).toLocaleDateString('de-DE')}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="icon-btn primary" title="Zonen verwalten" onclick="openCategoryZonesModal(${c.id}, '${c.name}')">${window.icons.edit}</button>
+                    <button class="icon-btn danger" title="Löschen" onclick="deleteCategory(${c.id})">${window.icons.trash}</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      $('categoriesList').innerHTML = html;
+    }
+
+    // Category Modal Functions
+    window.openCategoryModal = function() {
+      $('categoryModalTitle').textContent = 'Neue Kategorie';
+      $('categoryName').value = '';
+      $('categoryForm').dataset.categoryId = '';
+      $('categoryModal').classList.remove('hidden');
+    }
+
+    window.closeCategoryModal = function() {
+      $('categoryModal').classList.add('hidden');
+    }
+
+    window.submitCategoryForm = async function(e) {
+      e.preventDefault();
+      
+      const name = $('categoryName').value.trim();
+      
+      if (!name) {
+        alert('Kategoriename erforderlich');
         return;
       }
-
-      await apiCall('POST', '/api/admin/permissions', { userId, listId, canRead, canWrite });
-      showMessage('permMessage', 'Permission added');
-      loadPermissions();
-    });
-
-    async function deletePermission(permId) {
-      if (!confirm('Berechtigung entfernen?')) return;
-      await apiCall('DELETE', `/api/admin/permissions/${permId}`);
-      loadPermissions();
-    }
-
-    // ============ SYNC TAB ============
-
-    async function loadListsForSync() {
-      const lists = await apiCall('GET', '/api/admin/permissions').then(perms => {
-        return perms.map(p => ({ id: p.list_id, name: p.name, ha_entity_id: p.ha_entity_id }));
-      }).then(arr => {
-        // Remove duplicates
-        const seen = new Set();
-        return arr.filter(item => {
-          if (seen.has(item.id)) return false;
-          seen.add(item.id);
-          return true;
-        });
-      });
-
-      const tbody = document.getElementById('listsSyncTable');
-      tbody.innerHTML = '';
-
-      for (const list of lists) {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="px-4 py-2">${list.name}</td>
-          <td class="px-4 py-2 text-xs font-mono">${list.ha_entity_id}</td>
-          <td class="px-4 py-2 text-center">
-            <span id="count-${list.id}">-</span>
-          </td>
-          <td class="px-4 py-2 text-center">
-            <button class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs hover:bg-blue-200" 
-                    onclick="syncSingleList(${list.id})">
-              Sync
-            </button>
-          </td>
-        `;
-        tbody.appendChild(tr);
+      
+      const result = await apiCall('POST', '/api/admin/categories', { name });
+      
+      if (result && result.id) {
+        closeCategoryModal();
+        loadCategories();
+      } else {
+        alert('Fehler beim Erstellen der Kategorie');
       }
     }
 
-    document.getElementById('syncAllBtn').addEventListener('click', async () => {
-      const btn = document.getElementById('syncAllBtn');
+    window.deleteCategory = async function(categoryId) {
+      showConfirmDialog(
+        'Kategorie löschen',
+        'Möchten Sie diese Kategorie wirklich löschen? Listen, die dieser Kategorie zugeordnet sind, werden nicht gelöscht.',
+        async () => {
+          const result = await apiCall('DELETE', `/api/admin/categories/${categoryId}`);
+          if (result && result.success) {
+            loadCategories();
+          } else {
+            alert('Fehler beim Löschen der Kategorie');
+          }
+        }
+      );
+    }
+
+    // Category Zones Modal
+    window.currentCategoryId = null;
+    window.allHAZones = [];
+
+    window.openCategoryZonesModal = async function(categoryId, categoryName) {
+      currentCategoryId = categoryId;
+      $('categoryZonesModalTitle').textContent = `Zonen für "${categoryName}"`;
+      
+      // Load existing zones for this category
+      const zones = await apiCall('GET', `/api/admin/categories/${categoryId}/zones`);
+      
+      if (zones && zones.length > 0) {
+        const zonesList = zones.map(z => `
+          <div style="display: flex; justify-content: space-between; align-items: center; padding: var(--spacing-sm); border-bottom: 1px solid var(--color-gray-100); border-radius: 4px;">
+            <div>
+              <strong>${z.zone_name}</strong><br/>
+              <code style="background: var(--color-gray-100); padding: 2px 4px; font-size: 0.75rem;">${z.zone_entity_id}</code>
+            </div>
+            <button class="icon-btn danger" title="Entfernen" onclick="removeCategoryZone(${categoryId}, ${z.id})">${window.icons.trash}</button>
+          </div>
+        `).join('');
+        document.getElementById('categoryZonesList').innerHTML = zonesList;
+      } else {
+        document.getElementById('categoryZonesList').innerHTML = '<div style="color: var(--color-gray-500); padding: var(--spacing-md);">Keine Zonen zugeordnet</div>';
+      }
+      
+      // Load HA zones for searchable list
+      const haZones = await apiCall('GET', '/api/setup/ha-zones');
+      if (haZones) {
+        allHAZones = haZones;
+        renderCategoryZonesList(haZones);
+      }
+      
+      $('categoryZoneSearch').value = '';
+      $('categoryZonesModal').classList.remove('hidden');
+    }
+
+    window.renderCategoryZonesList = function(zones) {
+      if (!zones || zones.length === 0) {
+        $('categoryZonesList').innerHTML = '<div style="color: var(--color-gray-500); padding: var(--spacing-md);">Keine Zonen verfügbar</div>';
+        return;
+      }
+      
+      const zonesList = zones.map(z => `
+        <div style="padding: var(--spacing-sm); border-bottom: 1px solid var(--color-gray-100); cursor: pointer; transition: background 0.2s;" onmouseover="this.style.background='var(--color-gray-50)'" onmouseout="this.style.background='transparent'" onclick="selectCategoryZone('${z.entity_id}', '${z.name}')">
+          <strong>${z.name}</strong><br/>
+          <code style="background: var(--color-gray-100); padding: 2px 4px; font-size: 0.75rem;">${z.entity_id}</code>
+        </div>
+      `).join('');
+      
+      const zoneListDiv = $('categoryZonesList');
+      if (zoneListDiv.parentElement.id === 'addCategoryZoneForm') {
+        // Find the list container within the form
+        const listContainer = zoneListDiv.parentElement.querySelector('[style*="max-height"]');
+        if (listContainer) {
+          listContainer.innerHTML = zonesList;
+        }
+      } else {
+        // Update the list in the form area
+        const formArea = document.querySelector('#addCategoryZoneForm div[style*="max-height"]');
+        if (formArea) {
+          formArea.innerHTML = zonesList;
+        }
+      }
+    }
+
+    window.filterCategoryZones = function() {
+      const searchTerm = $('categoryZoneSearch').value.toLowerCase();
+      
+      if (!searchTerm) {
+        renderCategoryZonesList(allHAZones);
+        return;
+      }
+      
+      const filtered = allHAZones.filter(z => 
+        z.name.toLowerCase().includes(searchTerm) || 
+        z.entity_id.toLowerCase().includes(searchTerm)
+      );
+      
+      renderCategoryZonesList(filtered);
+    }
+
+    window.selectCategoryZone = async function(zoneEntityId, zoneName) {
+      const result = await apiCall('POST', `/api/admin/categories/${currentCategoryId}/zones`, {
+        zoneEntityId,
+        zoneName
+      });
+      
+      if (result && result.id) {
+        openCategoryZonesModal(currentCategoryId, $('categoryZonesModalTitle').textContent.replace('Zonen für "', '').replace('"', ''));
+      } else {
+        alert('Fehler beim Zuordnen der Zone');
+      }
+    }
+
+    window.closeCategoryZonesModal = function() {
+      $('categoryZonesModal').classList.add('hidden');
+      currentCategoryId = null;
+      allHAZones = [];
+      // Reload categories table to update zone counts
+      window.loadCategories();
+    }
+
+    window.removeCategoryZone = async function(categoryId, zoneId) {
+      const result = await apiCall('DELETE', `/api/admin/categories/${categoryId}/zones/${zoneId}`);
+      if (result && result.success) {
+        openCategoryZonesModal(categoryId, $('categoryZonesModalTitle').textContent.replace('Zonen für "', '').replace('"', ''));
+      } else {
+        alert('Fehler beim Entfernen der Zone');
+      }
+    }
+
+    // Load Lists for Sync - make globally available
+    window.loadListsForSync = async function() {
+      console.log('[loadListsForSync] Started');
+      const container = $('haListsList');
+      
+      if (!container) {
+        console.error('[loadListsForSync] Container not found!');
+        return;
+      }
+      
+      try {
+        console.log('[loadListsForSync] Calling API...');
+        const data = await apiCall('GET', '/api/admin/lists-for-sync');
+        console.log('[loadListsForSync] API Response:', data ? data.length + ' items' : 'null/undefined');
+        
+        if (!data || !Array.isArray(data)) {
+          console.error('[loadListsForSync] Invalid data:', data);
+          container.innerHTML = `
+            <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-error);">
+              ⚠️ Fehler beim Laden der Home Assistant Listen
+            </div>
+          `;
+          return;
+        }
+
+        // Get last sync time from localStorage (persists across reloads)
+        const lastSyncTime = localStorage.getItem('lastSyncTime') || 'Noch nicht synchronisiert';
+        
+        console.log('[loadListsForSync] Rendering table with', data.length, 'items, last sync:', lastSyncTime);
+        const html = `
+          <div style="margin-bottom: var(--spacing-md); font-size: 0.9rem; color: var(--color-gray-500); display: flex; align-items: center; gap: var(--spacing-sm);">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px;">
+              <circle cx="12" cy="12" r="1"></circle><path d="M12 1v6m0 6v6"></path><path d="M4.22 4.22l4.24 4.24m2.98 2.98l4.24 4.24"></path><path d="M19.78 4.22l-4.24 4.24m-2.98 2.98l-4.24 4.24"></path>
+            </svg>
+            Letzte Aktualisierung: <strong>${lastSyncTime}</strong>
+          </div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Liste</th>
+                <th>Home Assistant Entity</th>
+                <th>Aktionen</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${data.map(l => `
+                <tr>
+                  <td><strong>${l.name}</strong></td>
+                  <td><code style="background: var(--color-gray-100); padding: 2px 4px; border-radius: 3px;">${l.ha_entity_id || 'N/A'}</code></td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="btn btn-primary btn-small" onclick="syncList(${l.id})">Sync</button>
+                    </div>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        `;
+        container.innerHTML = html;
+        console.log('[loadListsForSync] Rendering complete');
+      } catch (error) {
+        console.error('[loadListsForSync] Error:', error.message);
+        container.innerHTML = `
+          <div style="text-align: center; padding: var(--spacing-lg); color: var(--color-error);">
+            ⚠️ Fehler beim Laden: ${error.message}
+          </div>
+        `;
+      }
+    }
+
+    // Sync single list - make globally available
+    window.syncList = async function(listId) {
+      const btn = event.target;
       btn.disabled = true;
-      btn.textContent = '⏳ Synchronisiere...';
+      btn.textContent = 'Synce...';
+
+      await apiCall('POST', `/api/admin/sync/list/${listId}`);
+
+      btn.disabled = false;
+      btn.textContent = 'Sync';
+      loadListsForSync();
+    }
+
+    // Sync all
+    $('syncAllBtn').addEventListener('click', async () => {
+      const btn = event.target;
+      btn.disabled = true;
+      const oldText = btn.textContent;
+      btn.textContent = 'Synchronisiere...';
+
+      const status = $('syncStatus');
+      status.textContent = 'Synchronisierung läuft...';
+      status.style.color = 'var(--color-info)';
 
       const result = await apiCall('POST', '/api/admin/sync/lists');
-      
-      if (result.error) {
-        showMessage('syncMessage', result.error, 'error');
+
+      if (result?.success) {
+        status.textContent = 'Synchronisierung abgeschlossen! ✓';
+        status.style.color = 'var(--color-success)';
+        
+        // Update last sync time in localStorage
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('de-DE');
+        localStorage.setItem('lastSyncTime', `Heute ${timeStr}`);
+        console.log('[SYNC] Time updated to:', localStorage.getItem('lastSyncTime'));
+        
+        // Reload the lists to show updated time
+        await loadListsForSync();
       } else {
-        showMessage('syncMessage', `${result.listsCount} lists synchronized`);
+        status.textContent = 'Fehler bei der Synchronisierung ✗';
+        status.style.color = 'var(--color-error)';
       }
 
       btn.disabled = false;
-      btn.textContent = 'Sync All Lists';
-      loadListsForSync();
+      btn.textContent = oldText;
+
+      setTimeout(() => {
+        status.textContent = 'Bereit';
+        status.style.color = 'var(--color-gray-500)';
+      }, 3000);
     });
 
-    async function syncSingleList(listId) {
-      const result = await apiCall('POST', `/api/admin/sync/list/${listId}`);
-      if (!result.error) {
-        showMessage('syncMessage', 'List synchronized');
-        loadListsForSync();
-      }
-    }
-
-    // ============ ZONES TAB ============
-
-    async function loadZoneMappings() {
-      // Load users for dropdown
-      const users = await apiCall('GET', '/api/admin/users');
-      const userSelect = document.getElementById('userSelect');
-      userSelect.innerHTML = '<option value="">Benutzer wählen...</option>';
-      users.forEach(user => {
-        const opt = document.createElement('option');
-        opt.value = user.id;
-        opt.textContent = user.username;
-        userSelect.appendChild(opt);
-      });
-
-      // Load HA persons
-      try {
-        const persons = await apiCall('GET', '/api/setup/ha-persons');
-        const personSelect = document.getElementById('personSelect');
-        personSelect.innerHTML = '<option value="">HA-Person wählen...</option>';
-        persons.forEach(person => {
-          const opt = document.createElement('option');
-          opt.value = person.entity_id;
-          opt.textContent = `${person.friendly_name} (${person.entity_id})`;
-          personSelect.appendChild(opt);
-        });
-      } catch (e) {
-        console.warn('Failed to load HA persons:', e);
-      }
-
-      // Load user-person mappings
-      const userPersonList = document.getElementById('userPersonList');
-      userPersonList.innerHTML = '';
-      for (const user of users) {
-        const tr = document.createElement('tr');
-        const hasMapping = user.ha_person_entity_id ? 'Mapped' : 'Not mapped';
-        const personName = user.ha_person_entity_id || 'Nicht zugeordnet';
-        
-        tr.innerHTML = `
-          <td class="px-4 py-2">${user.username}</td>
-          <td class="px-4 py-2 font-mono text-xs">${personName}</td>
-          <td class="px-4 py-2">${hasMapping}</td>
-          <td class="px-4 py-2 text-center">
-            <button class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200" 
-                    onclick="removeUserMapping(${user.id})">
-              🗑️ Entfernen
-            </button>
-          </td>
-        `;
-        userPersonList.appendChild(tr);
-      }
-
-      // Load lists for zone mapping
-      const lists = await apiCall('GET', '/api/lists');
-      const listSelect = document.getElementById('listSelect');
-      listSelect.innerHTML = '<option value="">Liste wählen...</option>';
-      lists.forEach(list => {
-        const opt = document.createElement('option');
-        opt.value = list.id;
-        opt.textContent = list.name;
-        listSelect.appendChild(opt);
-      });
-
-      // Load HA zones
-      try {
-        const zones = await apiCall('GET', '/api/setup/ha-zones');
-        const zoneSelect = document.getElementById('zoneSelect');
-        zoneSelect.innerHTML = '<option value="">Zone wählen...</option>';
-        zones.forEach(zone => {
-          const opt = document.createElement('option');
-          opt.value = zone.entity_id;
-          opt.textContent = `${zone.friendly_name} (${zone.entity_id})`;
-          zoneSelect.appendChild(opt);
-        });
-      } catch (e) {
-        console.warn('Failed to load HA zones:', e);
-      }
-    }
-
-    document.getElementById('mapUserBtn').addEventListener('click', async () => {
-      const userId = document.getElementById('userSelect').value;
-      const personId = document.getElementById('personSelect').value;
-
-      if (!userId || !personId) {
-        showMessage('userMapMessage', 'Please select user and person', 'error');
-        return;
-      }
-
-      const result = await apiCall('PATCH', `/api/users/${userId}/ha-person`, {
-        ha_person_entity_id: personId
-      });
-
-      if (result.error) {
-        showMessage('userMapMessage', `Error: ${result.error}`, 'error');
-      } else {
-        showMessage('userMapMessage', `User ${result.username} mapped to ${personId}`);
-        loadZoneMappings();
-      }
-    });
-
-    async function removeUserMapping(userId) {
-      if (!confirm('Zuordnung entfernen?')) return;
-      const result = await apiCall('PATCH', `/api/users/${userId}/ha-person`, {
-        ha_person_entity_id: null
-      });
-      loadZoneMappings();
-    }
-
-    document.getElementById('listSelect').addEventListener('change', async (e) => {
-      const listId = e.target.value;
-      if (!listId) {
-        document.getElementById('selectedListInfo').classList.add('hidden');
-        return;
-      }
-
-      const list = await apiCall('GET', `/api/lists/${listId}`);
-      document.getElementById('selectedListName').textContent = list.name;
-
-      const zones = await apiCall('GET', `/api/lists/${listId}/zones`);
-      const zonesList = document.getElementById('listZonesList');
-      zonesList.innerHTML = '';
-
-      if (zones.length === 0) {
-        zonesList.innerHTML = '<p class="text-gray-500 text-sm">Keine Zonen zugeordnet</p>';
-      } else {
-        zones.forEach(zone => {
-          const div = document.createElement('div');
-          div.className = 'flex items-center justify-between p-2 bg-white border border-gray-200 rounded';
-          div.innerHTML = `
-            <span>${zone.zone_name} <span class="text-xs text-gray-500">(${zone.zone_entity_id})</span></span>
-            <button class="px-2 py-1 bg-red-100 text-red-700 rounded text-xs hover:bg-red-200" 
-                    onclick="removeZoneMapping(${zone.id}, ${listId})">
-              🗑️ Entfernen
-            </button>
-          `;
-          zonesList.appendChild(div);
-        });
-      }
-
-      document.getElementById('selectedListInfo').classList.remove('hidden');
-    });
-
-    document.getElementById('addZoneBtn').addEventListener('click', async () => {
-      const listId = document.getElementById('listSelect').value;
-      const zoneId = document.getElementById('zoneSelect').value;
-
-      if (!listId || !zoneId) {
-        showMessage('zoneMessage', 'Please select list and zone', 'error');
-        return;
-      }
-
-      // Get zone name from select
-      const zoneSelect = document.getElementById('zoneSelect');
-      const zoneName = zoneSelect.options[zoneSelect.selectedIndex].text.split('(')[0].trim();
-
-      // Get existing zones
-      const existingZones = await apiCall('GET', `/api/lists/${listId}/zones`);
-      
-      // Check if already mapped
-      if (existingZones.some(z => z.zone_entity_id === zoneId)) {
-        showMessage('zoneMessage', 'This zone is already mapped', 'error');
-        return;
-      }
-
-      // Add new zone
-      const allZones = [...existingZones.map(z => ({ zone_entity_id: z.zone_entity_id, zone_name: z.zone_name }))];
-      allZones.push({ zone_entity_id: zoneId, zone_name: zoneName });
-
-      const result = await apiCall('PATCH', `/api/lists/${listId}/zones`, { zones: allZones });
-
-      if (result.error) {
-        showMessage('zoneMessage', `Error: ${result.error}`, 'error');
-      } else {
-        showMessage('zoneMessage', `Zone ${zoneName} mapped`);
-        document.getElementById('listSelect').dispatchEvent(new Event('change'));
-      }
-    });
-
-    async function removeZoneMapping(zoneId, listId) {
-      if (!confirm('Zone-Zuordnung entfernen?')) return;
-
-      const zones = await apiCall('GET', `/api/lists/${listId}/zones`);
-      const updated = zones.filter(z => z.id !== zoneId);
-
-      await apiCall('PATCH', `/api/lists/${listId}/zones`, { 
-        zones: updated.map(z => ({ zone_entity_id: z.zone_entity_id, zone_name: z.zone_name })) 
-      });
-
-      document.getElementById('listSelect').dispatchEvent(new Event('change'));
-    }
-
-    // ============ AUTO-REFRESH SYSTEM ============
+    // ===== LIST EDITOR WITH ICON SELECTOR =====
     
-    // Auto-refresh all data every 3 seconds
-    function refreshAllData() {
-      loadUsers();
-      loadPermissions();
-      loadUsersAndLists();
-      loadListsForSync();
-      loadZoneMappings();
+    window.loadListsForEditing = async function() {
+      const data = await window.apiCall('GET', '/api/admin/lists-for-sync');
+      if (!data) return;
+
+      const categories = await window.apiCall('GET', '/api/admin/categories') || [];
+
+      const html = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Liste</th>
+              <th>Kategorie</th>
+              <th>Farbe</th>
+              <th>Icon</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(l => {
+              const iconKey = l.icon;
+              const iconData = iconKey && window.listIcons[iconKey];
+              const iconHtml = iconData ? `<div style="width: 32px; height: 32px; color: ${l.color || 'var(--color-primary)'}; stroke: currentColor;">${iconData.svg}</div>` : '-';
+              return `
+                <tr>
+                  <td><strong>${l.name}</strong></td>
+                  <td>${l.category_id ? categories.find(c => c.id === l.category_id)?.name || '?' : '-'}</td>
+                  <td><div style="width: 30px; height: 30px; background: ${l.color || '#ccc'}; border-radius: 4px; border: 1px solid var(--color-gray-200);"></div></td>
+                  <td>${iconHtml}</td>
+                  <td>
+                    <div class="action-buttons">
+                      <button class="icon-btn primary" title="Bearbeiten" onclick="window.openListEditorModal(${l.id}, '${l.name}', ${l.category_id || 'null'}, '${l.color || ''}', '${l.icon || ''}')">${window.icons.edit}</button>
+                    </div>
+                  </td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+      document.getElementById('listsList').innerHTML = html;
     }
 
-    // Initial load
-    refreshAllData();
+    // ===== LIST EDITOR WITH ICON SELECTOR =====
+    
+    window.openListEditorModal = async function(listId, listName, categoryId, color, icon) {
+      // Set form values
+      document.getElementById('listEditorId').value = listId;
+      document.getElementById('listEditorName').value = listName;
+      document.getElementById('listEditorColor').value = color || '#2563eb';
+      document.getElementById('listEditorColorText').value = color || '#2563eb';
+      document.getElementById('listEditorIcon').value = icon || '';
+      document.getElementById('listEditorTitle').textContent = `Liste bearbeiten: ${listName}`;
+      
+      // Load and render categories
+      const categories = await window.apiCall('GET', '/api/admin/categories') || [];
+      let categoryHtml = '<option value="">-- Keine Kategorie --</option>';
+      // Convert categoryId to number for proper comparison
+      const selectedCategoryId = categoryId ? parseInt(categoryId) : null;
+      categoryHtml += categories.map(c => 
+        `<option value="${c.id}" ${c.id === selectedCategoryId ? 'selected' : ''}>${c.name}</option>`
+      ).join('');
+      document.getElementById('listEditorCategory').innerHTML = categoryHtml;
+      
+      // Load and render users with access to this list
+      try {
+        const users = await window.apiCall('GET', `/api/admin/lists/${listId}/users`) || [];
+        const allUsers = await window.apiCall('GET', '/api/admin/users') || [];
+        
+        let usersHtml = '';
+        allUsers.forEach(user => {
+          const hasAccess = users.some(u => u.id === user.id && u.can_read);
+          usersHtml += `
+            <div style="display: flex; align-items: center; gap: var(--spacing-md); padding: var(--spacing-sm) 0; border-bottom: 1px solid var(--color-gray-400);">
+              <input type="checkbox" 
+                     class="list-user-checkbox" 
+                     data-user-id="${user.id}" 
+                     ${hasAccess ? 'checked' : ''}
+                     style="cursor: pointer;">
+              <label style="flex: 1; cursor: pointer; color: var(--text-primary);">${user.username}</label>
+            </div>
+          `;
+        });
+        document.getElementById('listEditorUsers').innerHTML = usersHtml || '<p style="color: var(--text-secondary);">Keine Benutzer verfügbar</p>';
+      } catch (err) {
+        console.error('Failed to load users:', err);
+        document.getElementById('listEditorUsers').innerHTML = '<p style="color: var(--color-error);">Fehler beim Laden der Benutzer</p>';
+      }
+      
+      // Render icon grid
+      let iconGridHtml = '';
+      Object.entries(window.listIcons).forEach(([key, data]) => {
+        const isSelected = key === icon;
+        iconGridHtml += `
+          <button type="button" class="icon-select-btn" data-icon="${key}"
+                  title="${data.name}"
+                  style="
+                    padding: var(--spacing-md);
+                    border: 2px solid ${isSelected ? 'var(--color-primary)' : 'var(--color-gray-200)'};
+                    border-radius: var(--radius-md);
+                    background: ${isSelected ? 'var(--color-primary)' : 'transparent'};
+                    color: ${isSelected ? 'white' : 'var(--color-primary)'};
+                    cursor: pointer;
+                    transition: all 0.2s ease;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    width: 60px;
+                    height: 60px;
+                    font-size: 28px;
+                  ">
+            ${data.svg}
+          </button>
+        `;
+      });
+      document.getElementById('listIconGrid').innerHTML = iconGridHtml;
+      
+      // Add click handlers to icon buttons
+      document.querySelectorAll('.icon-select-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          const iconKey = btn.getAttribute('data-icon');
+          document.getElementById('listEditorIcon').value = iconKey;
+          // Re-render to show selection
+          window.openListEditorModal(listId, listName, categoryId, color, iconKey);
+        });
+      });
+      
+      // Show modal
+      document.getElementById('listEditorModal').classList.remove('hidden');
+    }
 
-    // Auto-refresh every 3 seconds
-    setInterval(refreshAllData, 3000);
+    window.closeListEditorModal = function() {
+      document.getElementById('listEditorModal').classList.add('hidden');
+    }
+
+    window.syncListEditorColor = function() {
+      const colorInput = document.getElementById('listEditorColor');
+      const textInput = document.getElementById('listEditorColorText');
+      
+      if (event && event.target === colorInput) {
+        textInput.value = colorInput.value;
+      } else {
+        const isValidHex = /^#[0-9A-F]{6}$/i.test(textInput.value);
+        if (isValidHex) {
+          colorInput.value = textInput.value;
+        }
+      }
+    }
+
+    window.submitListEditorForm = async function(e) {
+      e.preventDefault();
+      
+      const listId = parseInt(document.getElementById('listEditorId').value);
+      const categoryId = document.getElementById('listEditorCategory').value 
+        ? parseInt(document.getElementById('listEditorCategory').value) 
+        : null;
+      const color = document.getElementById('listEditorColor').value;
+      const icon = document.getElementById('listEditorIcon').value;
+      
+      // Get selected users
+      const userCheckboxes = document.querySelectorAll('.list-user-checkbox:checked');
+      const userIds = Array.from(userCheckboxes).map(cb => parseInt(cb.getAttribute('data-user-id')));
+      
+      // Save list properties
+      const result = await window.apiCall('PATCH', `/api/admin/lists/${listId}`, {
+        categoryId,
+        color,
+        icon
+      });
+      
+      // Save list sharing
+      if (userIds.length > 0 || document.querySelectorAll('.list-user-checkbox').length > 0) {
+        await window.apiCall('PATCH', `/api/admin/lists/${listId}/users`, {
+          userIds
+        });
+      }
+      
+      if (result && result.id) {
+        window.closeListEditorModal();
+        window.loadListsForEditing();
+      } else {
+        alert('Fehler beim Speichern der Liste');
+      }
+    }
+
+    // ===== USER HA-PERSON MAPPING =====
+
+    window.openUserPersonModal = async function(userId, username) {
+      $('userPersonUserId').value = userId;
+      $('userPersonUsername').value = username;
+      $('userPersonModalTitle').textContent = `HA-Person zuordnen: ${username}`;
+      
+      // Load HA persons
+      const persons = await apiCall('GET', '/api/setup/ha-persons');
+      
+      let html = '<option value="">-- Keine Person --</option>';
+      if (persons) {
+        html += persons.map(p => `<option value="${p.entity_id}">${p.name || p.entity_id}</option>`).join('');
+      }
+      
+      $('userPersonSelect').innerHTML = html;
+      
+      // Load current person for this user
+      const userDetails = await apiCall('GET', `/api/users/${userId}`);
+      if (userDetails && userDetails.ha_person_entity_id) {
+        $('userPersonSelect').value = userDetails.ha_person_entity_id;
+      }
+      
+      $('userPersonModal').classList.remove('hidden');
+    }
+
+    window.closeUserPersonModal = function() {
+      $('userPersonModal').classList.add('hidden');
+    }
+
+    window.submitUserPersonForm = async function(e) {
+      e.preventDefault();
+      
+      const userId = parseInt($('userPersonUserId').value);
+      const personEntityId = $('userPersonSelect').value || null;
+      
+      const result = await apiCall('PATCH', `/api/users/${userId}/ha-person`, {
+        haPersonEntityId: personEntityId
+      });
+      
+      if (result && result.id) {
+        closeUserPersonModal();
+        loadUsers();
+      } else {
+        alert('Fehler beim Speichern der Person-Zuordnung');
+      }
+    }
+
+    // Modify loadUsers to add HA-Person button
+    const originalLoadUsers = window.loadUsers;
+    window.loadUsers = async function() {
+      const data = await apiCall('GET', '/api/admin/users');
+      if (!data) return;
+
+      const html = `
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Benutzer</th>
+              <th>Admin</th>
+              <th>HA-Person</th>
+              <th>Erstellt</th>
+              <th>Aktionen</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${data.map(u => `
+              <tr>
+                <td>${u.username}</td>
+                <td>${u.is_admin ? 'Ja' : 'Nein'}</td>
+                <td><code style="background: var(--color-gray-100); padding: 2px 4px; border-radius: 3px; font-size: 0.75rem;">${u.ha_person_entity_id || '-'}</code></td>
+                <td>${new Date(u.created_at).toLocaleDateString('de-DE')}</td>
+                <td>
+                  <div class="action-buttons">
+                    <button class="icon-btn secondary" title="HA-Person" onclick="openUserPersonModal(${u.id}, '${u.username}')" style="width: 36px; height: 36px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 20px; height: 20px;"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></button>
+                    <button class="icon-btn primary" title="Bearbeiten" onclick="editUser(${u.id}, '${u.username}', ${u.is_admin})">${window.icons.edit}</button>
+                    <button class="icon-btn danger" title="Löschen" onclick="deleteUser(${u.id})">${window.icons.trash}</button>
+                  </div>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      $('usersList').innerHTML = html;
+    }
+
+    // ===== PROFILE MODAL =====
+    window.openProfileModal = async function() {
+      const username = user.username || 'Admin';
+      document.getElementById('currentUsername').textContent = username;
+      
+      // Load current HA config
+      const config = await window.apiCall('GET', '/api/config');
+      if (config) {
+        document.querySelector('input[name="haUrl"]').value = config.ha_url || '';
+      }
+      
+      document.getElementById('profileModal').classList.remove('hidden');
+    };
+
+    window.closeProfileModal = function() {
+      document.getElementById('profileModal').classList.add('hidden');
+      document.getElementById('profileMessage').innerHTML = '';
+      document.getElementById('profileMessage').style.display = 'none';
+    };
+
+    window.switchProfileTab = function(tabName) {
+      // Hide all tabs and remove active class
+      document.querySelectorAll('.tab-content').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Deactivate all buttons
+      document.querySelectorAll('#profileTabAccount, #profileTabPassword, #profileTabTwoFA').forEach(el => {
+        el.classList.remove('active');
+      });
+      
+      // Show the selected tab
+      const tabEl = document.getElementById(`profileTab-${tabName}`);
+      if (tabEl) {
+        tabEl.classList.add('active');
+      }
+      
+      // Activate the button
+      const btnMap = {
+        'account': 'profileTabAccount',
+        'password': 'profileTabPassword',
+        'twofa': 'profileTabTwoFA'
+      };
+      const btnId = btnMap[tabName];
+      if (btnId) {
+        const btn = document.getElementById(btnId);
+        btn.classList.add('active');
+        
+        // Update floating indicator
+        const container = btn.closest('.tabs-container');
+        if (container) updateTabIndicator(container);
+        
+        // Load 2FA status if opening 2FA tab
+        if (tabName === 'twofa') {
+          window.loadTwoFAStatus();
+        }
+      }
+    };
+
+    window.showProfileMessage = function(message, isError = false) {
+      const msgEl = document.getElementById('profileMessage');
+      msgEl.textContent = message;
+      msgEl.style.display = 'block';
+      msgEl.style.background = isError ? 'var(--color-danger-bg)' : 'var(--color-success-bg)';
+      msgEl.style.color = isError ? 'var(--color-danger)' : 'var(--color-success)';
+      msgEl.style.border = '1px solid ' + (isError ? 'var(--color-danger)' : 'var(--color-success)');
+    };
+
+    window.submitChangeUsername = async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const newUsername = form.newUsername.value;
+      const password = form.password.value;
+
+      try {
+        const response = await window.apiCall('PATCH', `/api/users/${user.id}/username`, {
+          newUsername,
+          password
+        });
+
+        if (response.success) {
+          user.username = newUsername;
+          localStorage.setItem('user', JSON.stringify(user));
+          window.showProfileMessage('✅ Benutzername erfolgreich geändert!');
+          form.reset();
+          setTimeout(() => {
+            window.location.reload();
+          }, 1500);
+        }
+      } catch (error) {
+        window.showProfileMessage('❌ Fehler: ' + (error.message || 'Benutzername konnte nicht geändert werden'), true);
+      }
+    };
+
+    window.submitChangePassword = async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const currentPassword = form.currentPassword.value;
+      const newPassword = form.newPassword.value;
+
+      try {
+        const response = await window.apiCall('PATCH', `/api/users/${user.id}/password`, {
+          currentPassword,
+          newPassword
+        });
+
+        if (response.success) {
+          window.showProfileMessage('✅ Passwort erfolgreich geändert!');
+          form.reset();
+          setTimeout(() => {
+            window.location.href = '/setup.html';
+          }, 1500);
+        }
+      } catch (error) {
+        window.showProfileMessage('❌ Fehler: ' + (error.message || 'Passwort konnte nicht geändert werden'), true);
+      }
+    };
+
+    window.submitChangeHAToken = async function(e) {
+      e.preventDefault();
+      const form = e.target;
+      const haUrl = form.haUrl.value;
+      const haToken = form.haToken.value;
+
+      try {
+        const response = await window.apiCall('PATCH', `/api/config/ha-token`, {
+          haUrl,
+          haToken
+        });
+
+        if (response.success) {
+          window.showProfileMessage('✅ Home Assistant Verbindung erfolgreich gespeichert!');
+          form.reset();
+          // Reload config after 1.5 seconds
+          setTimeout(() => {
+            window.openProfileModal();
+          }, 1500);
+        }
+      } catch (error) {
+        window.showProfileMessage('❌ Fehler: ' + (error.message || 'HA-Verbindung konnte nicht gespeichert werden'), true);
+      }
+    };
+
+    // Global header menu functions
+    window.toggleHeaderMenu = function() {
+      const dropdown = document.getElementById('headerMenuDropdown');
+      if (dropdown) {
+        dropdown.classList.toggle('active');
+      }
+    };
+
+    window.logoutUser = function() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = '/setup.html';
+    };
+
+    // Close menu when clicking outside
+    document.addEventListener('click', (e) => {
+      const menuContainer = document.querySelector('.header-menu-container');
+      if (menuContainer && !menuContainer.contains(e.target)) {
+        const dropdown = document.getElementById('headerMenuDropdown');
+        if (dropdown) {
+          dropdown.classList.remove('active');
+        }
+      }
+    });
+
+    // ===== TWO-FACTOR AUTHENTICATION =====
+
+    let twoFASetupSecret = null;
+    let twoFASetupBackupCodes = null;
+
+    window.loadTwoFAStatus = async function() {
+      const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+      try {
+        const response = await apiCall('GET', `/api/users/${user.id}`);
+        if (response) {
+          const hasTwoFA = response.two_factor_enabled;
+          document.getElementById('twoFAStatusText').textContent = hasTwoFA ? '✓ Aktiv' : '✗ Deaktiviert';
+          document.getElementById('twoFAStatus').style.borderLeftColor = hasTwoFA ? 'var(--color-success)' : 'var(--color-warning)';
+          document.getElementById('twoFADisabled').style.display = hasTwoFA ? 'none' : 'block';
+          document.getElementById('twoFAEnabled').style.display = hasTwoFA ? 'block' : 'none';
+          document.getElementById('twoFASetupForm').style.display = 'none';
+        }
+      } catch (error) {
+        console.error('Failed to load 2FA status:', error);
+      }
+    };
+
+    window.initiateTwoFASetup = async function() {
+      try {
+        const response = await apiCall('POST', '/api/2fa/setup', {});
+        if (response) {
+          twoFASetupSecret = response.secret;
+          twoFASetupBackupCodes = response.backupCodes;
+          
+          // Show QR code
+          const qrContainer = document.getElementById('twoFAQRCode');
+          qrContainer.innerHTML = `<img src="${response.qrCode}" alt="QR Code" style="width: 200px; height: 200px;">`;
+          
+          // Show backup codes
+          const codesDiv = document.getElementById('twoFABackupCodes');
+          codesDiv.textContent = response.backupCodes.map((code, i) => 
+            `${i + 1}. ${code.substring(0, 4)} ${code.substring(4)}`
+          ).join('\n');
+          
+          document.getElementById('twoFADisabled').style.display = 'none';
+          document.getElementById('twoFASetupForm').style.display = 'block';
+          document.getElementById('twoFAVerifyCode').focus();
+        }
+      } catch (error) {
+        window.showProfileMessage('Fehler: ' + error.message, true);
+      }
+    };
+
+    window.verifyTwoFACode = async function(e) {
+      e.preventDefault();
+      try {
+        const code = document.getElementById('twoFAVerifyCode').value;
+        
+        const response = await apiCall('POST', '/api/2fa/enable', {
+          secret: twoFASetupSecret,
+          code: code,
+          backupCodesHashed: [] // Backend will hash them
+        });
+
+        if (response && response.success) {
+          window.showProfileMessage('✓ 2FA erfolgreich aktiviert!', false);
+          setTimeout(() => {
+            window.loadTwoFAStatus();
+          }, 1500);
+        }
+      } catch (error) {
+        window.showProfileMessage('Fehler: ' + (error.message || 'Ungültiger Code'), true);
+      }
+    };
+
+    window.regenerateBackupCodes = async function() {
+      const password = prompt('Geben Sie Ihr Passwort ein um Backup-Codes zu generieren:');
+      if (!password) return;
+
+      try {
+        const response = await apiCall('POST', '/api/2fa/backup-codes', { password });
+        if (response && response.success) {
+          const codesText = response.backupCodes.map((code, i) => 
+            `${i + 1}. ${code.substring(0, 4)} ${code.substring(4)}`
+          ).join('\n');
+          
+          alert('Neue Backup-Codes generiert:\n\n' + codesText + '\n\nSpeichern Sie diese Codes an einem sicheren Ort.');
+          window.showProfileMessage('✓ Neue Backup-Codes generiert!', false);
+        }
+      } catch (error) {
+        window.showProfileMessage('Fehler: ' + (error.message || 'Fehler beim Generieren der Codes'), true);
+      }
+    };
+
+    window.disableTwoFA = async function() {
+      const confirmed = confirm('Sind Sie sicher, dass Sie 2FA deaktivieren möchten? Sie benötigen dann nur noch Ihr Passwort zum Anmelden.');
+      if (!confirmed) return;
+
+      const password = prompt('Geben Sie Ihr Passwort ein um 2FA zu deaktivieren:');
+      if (!password) return;
+
+      try {
+        const response = await apiCall('POST', '/api/2fa/disable', { password });
+        if (response && response.success) {
+          window.showProfileMessage('✓ 2FA wurde deaktiviert!', false);
+          setTimeout(() => {
+            window.loadTwoFAStatus();
+          }, 1500);
+        }
+      } catch (error) {
+        window.showProfileMessage('Fehler: ' + (error.message || 'Fehler beim Deaktivieren'), true);
+      }
+    };
+
+    window.cancelTwoFASetup = function() {
+      twoFASetupSecret = null;
+      twoFASetupBackupCodes = null;
+      document.getElementById('twoFASetupForm').style.display = 'none';
+      document.getElementById('twoFADisabled').style.display = 'block';
+    };
+
+    // Update user display in header menu
+    function updateUserDisplay() {
+      const userDisplayLabel = document.getElementById('userDisplayLabel');
+      const userInitial = document.getElementById('userInitial');
+      if (user?.username) {
+        userDisplayLabel.textContent = user.username;
+        userInitial.textContent = user.username.charAt(0).toUpperCase();
+      }
+    }
+
+    // Theme Management
+    function initTheme() {
+      const savedTheme = localStorage.getItem('app-theme') || 'light';
+      applyTheme(savedTheme);
+      updateThemeButtons(savedTheme);
+    }
+
+    function applyTheme(theme) {
+      if (theme === 'system') {
+        document.documentElement.removeAttribute('data-theme');
+        localStorage.setItem('app-theme', 'system');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('app-theme', theme);
+      }
+      updateThemeButtons(theme);
+    }
+
+    function updateThemeButtons(theme) {
+      document.querySelectorAll('.theme-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-theme') === theme) {
+          btn.classList.add('active');
+        }
+      });
+    }
+
+    // Theme button listeners
+    document.querySelectorAll('.theme-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const theme = btn.getAttribute('data-theme');
+        applyTheme(theme);
+      });
+    });
+
+    // Initial load based on hash - using DOMContentLoaded event with longer delay for token initialization
+    if (document.readyState === 'loading') {
+      // Still loading
+      document.addEventListener('DOMContentLoaded', () => {
+        // Wait longer to ensure token is fully initialized after login
+        setTimeout(() => {
+          initTheme();
+          updateUserDisplay();
+          const initialTab = window.location.hash.substring(1) || 'users';
+          console.log('[INIT] Initializing tab:', initialTab);
+          if (typeof window.switchTab === 'function') {
+            window.switchTab(initialTab);
+            console.log('[INIT] switchTab called successfully');
+          } else {
+            console.error('[INIT] switchTab is not a function!');
+          }
+        }, 500);
+      });
+    } else {
+      // Already loaded
+      setTimeout(() => {
+        initTheme();
+        updateUserDisplay();
+        const initialTab = window.location.hash.substring(1) || 'users';
+        console.log('[INIT] Already loaded - Initializing tab:', initialTab);
+        if (typeof window.switchTab === 'function') {
+          window.switchTab(initialTab);
+          console.log('[INIT] switchTab called successfully');
+        }
+      }, 500);
+    }
+    
+    
+    // Listen for hash changes
+    window.addEventListener('hashchange', () => {
+      const tab = window.location.hash.substring(1) || 'users';
+      console.log('[ADMIN] Hash changed to:', tab);
+      if (typeof window.switchTab === 'function') {
+        window.switchTab(tab);
+      }
+    });
+    
+    // Initialize tab indicators on page load
+    setTimeout(() => {
+      document.querySelectorAll('.tabs-container').forEach(container => {
+        updateTabIndicator(container);
+      });
+      
+      // Also observe window resize to recalculate indicator positions
+      window.addEventListener('resize', () => {
+        document.querySelectorAll('.tabs-container').forEach(container => {
+          updateTabIndicator(container);
+        });
+      });
+    }, 0);
   </script>
 </body>
 </html>
