@@ -19,7 +19,8 @@ Max ist unterwegs mit der Einkaufsliste-App:
    ↓
 5. Max sieht: 📍 "Drogerie ist in Ihrer Nähe"
    ↓
-6. Max sieht sofort was er dort kaufen soll!
+6. Max sieht sofort was er dort kaufen soll! 
+
 ```
 
 ---

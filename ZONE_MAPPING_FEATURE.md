@@ -20,6 +20,7 @@ Max ist unterwegs mit der App.
 5. Max sieht eine Benachrichtigung: "📍 Drogerie ist in Ihrer Nähe"
    ↓
 6. Einkaufen wird einfacher!
+
 ```
 
 ---

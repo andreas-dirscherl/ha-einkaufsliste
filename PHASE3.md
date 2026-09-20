@@ -1,5 +1,6 @@
 # 🚀 Phase 3: Live-Sync + Push Notifications + Kategorisierung
 
+
 ## ✨ Was wurde implementiert
 
 ### 1️⃣ **WebSocket Live-Sync** (Automatisch + Real-Time)

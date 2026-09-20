@@ -16,6 +16,7 @@ Das Projekt nutzt ein **YYYY.MM.PATCH** Versionsschema:
 - `2026.9.1` - September 2026, Patch 1 (Bug Fix)
 - `2026.10.0` - Oktober 2026, Patch 0 (neuer Monat)
 
+
 ---
 
 ## 🚀 Version verwenden
