@@ -13,6 +13,22 @@
   
   <title>Shopping List - Einkaufsliste</title>
   <link rel="stylesheet" href="/style.css">
+
+  <!-- Prevent theme flash by setting theme immediately -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('app-theme') || 'light';
+      const theme = (savedTheme === 'system') ? 
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : 
+        savedTheme;
+      
+      if (theme === 'system') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+    })();
+  </script>
   
   <style>
     body {
@@ -1830,6 +1846,9 @@
           return;
         }
 
+        // Show success message immediately
+        showTwoFAMessage('✓ 2FA-Code verifiziert! Speichern Sie die Backup-Codes.', 'success');
+        
         // Show backup codes
         document.getElementById('twoFASetupState').style.display = 'none';
         document.getElementById('twoFABackupCodesState').style.display = 'block';
@@ -2174,10 +2193,10 @@
               <div style="text-align: center; padding: var(--spacing-lg); background: white; border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);">
                 <img id="twoFAQRCode" src="" alt="2FA QR Code" style="max-width: 300px; width: 100%; height: auto;">
               </div>
-              <div style="margin-top: var(--spacing-lg); padding: var(--spacing-md); background: var(--color-gray-50); border: 1px solid var(--color-gray-200); border-radius: var(--radius-md);">
-                <p style="font-size: 0.8rem; color: var(--color-gray-500); margin: 0 0 var(--spacing-sm) 0;">Falls der QR-Code nicht funktioniert, geben Sie diesen Code manuell ein:</p>
+              <div style="margin-top: var(--spacing-lg); padding: var(--spacing-md); background: #1e293b !important; border: 1px solid #334155; border-radius: var(--radius-md);">
+                <p style="font-size: 0.8rem; color: #cbd5e1; margin: 0 0 var(--spacing-sm) 0;">Falls der QR-Code nicht funktioniert, geben Sie diesen Code manuell ein:</p>
                 <div style="display: flex; gap: var(--spacing-sm); align-items: center;">
-                  <code id="twoFAManualSecret" style="flex: 1; background: white; padding: var(--spacing-sm); border-radius: 3px; border: 1px solid var(--color-gray-300); font-size: 0.9rem; font-weight: 600; letter-spacing: 1px; word-break: break-all;"></code>
+                  <code id="twoFAManualSecret" style="flex: 1; background: #0f172a !important; color: #06b6d4 !important; padding: var(--spacing-sm); border-radius: 3px; border: 2px solid #06b6d4; font-size: 1.1rem; font-weight: 700; letter-spacing: 3px; word-break: break-all; font-family: 'Courier New', monospace; min-height: 50px; line-height: 2; text-align: center; white-space: pre-wrap; overflow-wrap: break-word;"></code>
                   <button type="button" class="btn btn-secondary" onclick="window.copySecretCode()" style="white-space: nowrap; padding: var(--spacing-sm) var(--spacing-md); font-size: 0.85rem;">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 14px; height: 14px; display: inline; margin-right: 4px;"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path><rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect></svg>
                     Kopieren
@@ -2189,7 +2208,7 @@
             <div style="margin-bottom: var(--spacing-lg);">
               <h4 style="margin: 0 0 var(--spacing-md) 0; font-size: 0.95rem;">Schritt 2: Code eingeben</h4>
               <p style="font-size: 0.85rem; color: var(--color-gray-600); margin-bottom: var(--spacing-md);">Geben Sie den 6-stelligen Code aus Ihrer App ein.</p>
-              <input type="text" id="twoFAVerificationCode" placeholder="000000" maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" style="width: 100%; padding: var(--spacing-sm); border: 1px solid var(--color-gray-300); border-radius: var(--radius-md); font-size: 1.2rem; text-align: center; letter-spacing: 4px; font-family: monospace;">
+              <input type="text" id="twoFAVerificationCode" placeholder="000000" maxlength="6" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" inputmode="numeric" style="width: 100%; padding: var(--spacing-sm); border: 2px solid #06b6d4 !important; border-radius: var(--radius-md); font-size: 1.4rem; text-align: center; letter-spacing: 8px; font-family: 'Courier New', monospace; background: #0f172a !important; color: #06b6d4 !important; font-weight: 700;">
             </div>
 
             <div style="display: flex; gap: var(--spacing-sm);">

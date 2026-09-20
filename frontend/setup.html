@@ -5,6 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Einkaufsliste Setup</title>
   <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Prevent theme flash by setting theme immediately -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('app-theme') || 'light';
+      const theme = (savedTheme === 'system') ? 
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : 
+        savedTheme;
+      
+      if (theme === 'system') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+    })();
+  </script>
   <style>
     body {
       background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);

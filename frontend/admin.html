@@ -6,6 +6,22 @@
   <meta name="theme-color" content="#06b6d4">
   <title>Admin Dashboard - Einkaufsliste</title>
   <link rel="stylesheet" href="/style.css">
+
+  <!-- Prevent theme flash by setting theme immediately -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('app-theme') || 'light';
+      const theme = (savedTheme === 'system') ? 
+        (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : 
+        savedTheme;
+      
+      if (theme === 'system') {
+        document.documentElement.removeAttribute('data-theme');
+      } else {
+        document.documentElement.setAttribute('data-theme', theme);
+      }
+    })();
+  </script>
   
   <style>
     body {
