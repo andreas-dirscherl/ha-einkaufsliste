@@ -1688,13 +1688,15 @@ app.get('/api/lists', verifyToken, (req, res) => {
       `).all(req.user.id);
     }
     
-    // Add dynamic item count to each list
+    // Add dynamic item count and preview items to each list
     const listsWithCounts = lists.map(list => {
       // Count only active (not completed) items
       const activeCount = db.prepare('SELECT COUNT(*) as count FROM items WHERE list_id = ? AND is_completed = 0').get(list.id).count;
       // Count completed items
       const completedCount = db.prepare('SELECT COUNT(*) as count FROM items WHERE list_id = ? AND is_completed = 1').get(list.id).count;
-      return { ...list, item_count: activeCount, completed_count: completedCount };
+      // Get preview items (first 3 items)
+      const previewItems = db.prepare('SELECT id, title, is_completed FROM items WHERE list_id = ? ORDER BY is_completed ASC, created_at DESC LIMIT 3').all(list.id);
+      return { ...list, item_count: activeCount, completed_count: completedCount, items: previewItems };
     });
     
     res.json(listsWithCounts);

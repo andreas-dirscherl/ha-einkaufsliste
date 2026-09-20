@@ -29,9 +29,9 @@
     .main-content {
       flex: 1;
       overflow-y: auto;
-      padding: var(--spacing-lg);
+      padding: var(--spacing-md);
       padding-bottom: 140px;
-      max-width: 1024px;
+      max-width: 1400px;
       margin: 0 auto;
       width: 100%;
     }
@@ -89,13 +89,14 @@
     .lists-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-      gap: var(--spacing-lg);
+      gap: var(--spacing-md);
       margin-bottom: var(--spacing-lg);
     }
 
     @media (max-width: 768px) {
       .lists-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+        gap: var(--spacing-sm);
       }
     }
 
@@ -381,7 +382,7 @@
       <div id="itemsView" class="hidden">
         <div class="mb-lg flex items-center justify-between">
           <h2 id="currentListTitle" class="text-xl font-semibold"></h2>
-          <button id="backBtn" class="btn btn-secondary">Zurück</button>
+          <button id="backBtn" class="btn btn-secondary" onclick="backToLists(); return false;">Zurück</button>
         </div>
         <div id="itemsList" class="items-list"></div>
         <div id="emptyItemsState" class="empty-state hidden">
@@ -851,21 +852,48 @@
         card.style.setProperty('--list-color-main', listColorMain);
         card.style.setProperty('--list-color-light', listColorLight);
         
+        // Create item preview from initial data or fetch
+        let previewHTML = '';
+        if (list.items && list.items.length > 0) {
+          const itemsToShow = list.items.slice(0, 3);
+          previewHTML = `
+            <div class="list-card-preview">
+              <div class="list-card-preview-items">
+                ${itemsToShow.map(item => `
+                  <div class="list-card-preview-item ${item.is_completed ? 'completed' : ''}">
+                    <span>${escapeHtml(item.title.substring(0, 28))}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          `;
+          if (list.items.length > 3) {
+            previewHTML += `<div style="font-size: 0.7rem; color: var(--text-tertiary); margin-top: var(--spacing-xs);">+${list.items.length - 3} weitere</div>`;
+          }
+        } else {
+          previewHTML = `
+            <div class="list-card-preview">
+              <div class="list-card-preview-empty">Keine Einträge</div>
+            </div>
+          `;
+        }
+        
         card.innerHTML = `
           <div class="list-card-header">
             <div class="list-card-icon">${iconSvg}</div>
-            <div style="flex: 1;">
+            <div style="flex: 1; min-width: 0;">
               <div class="list-card-title">${escapeHtml(list.name)}</div>
               ${list.description ? `<div class="list-card-description">${escapeHtml(list.description)}</div>` : ''}
             </div>
           </div>
+          ${previewHTML}
           <div class="list-card-stats">
             <span class="list-card-stat">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px; flex-shrink: 0;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
               <span>${(list.item_count || 0)}</span>
             </span>
             <span class="list-card-stat">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" style="width: 16px; height: 16px; flex-shrink: 0;"><path d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"><path d="M9 12l2 2 4-4m7 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
               <span>${(list.completed_count || 0)}</span>
             </span>
           </div>
@@ -918,6 +946,11 @@
       $('itemsView').classList.remove('hidden');
       $('inputFooter').classList.remove('hidden');
 
+      // Update URL with list parameter
+      const url = new URL(window.location);
+      url.searchParams.set('list', list.id);
+      window.history.pushState({ listId: list.id }, list.name, url.toString());
+
       if (wsClient && wsClient.isConnected()) {
         wsClient.subscribeToList(list.id);
       }
@@ -948,6 +981,10 @@
         itemsList.appendChild(createItemElement(item));
       });
     }
+    
+    // Make openList globally accessible
+    window.openList = openList;
+    window.loadListItems = loadListItems;
 
     // Swipe detection for mobile delete
     let touchStartX = 0;
@@ -1201,7 +1238,15 @@
       $('listsView').classList.remove('hidden');
       $('itemsList').innerHTML = '';
       $('itemInput').value = '';
+      
+      // Update URL back to dashboard (remove list parameter)
+      const url = new URL(window.location);
+      url.searchParams.delete('list');
+      window.history.pushState({}, 'Dashboard', url.toString());
     }
+    
+    // Make globally accessible
+    window.backToLists = backToLists;
 
     // Delete Confirmation Modal Functions
     function showDeleteConfirmation(itemTitle) {
@@ -1985,6 +2030,51 @@
     // Init
     initWebSocket();
     loadListsAsCards();
+    
+    // Handle URL parameters on page load
+    async function handleUrlParams() {
+      const params = new URLSearchParams(window.location.search);
+      const listId = params.get('list');
+      if (listId && allLists.length > 0) {
+        const list = allLists.find(l => l.id == listId);
+        if (list) {
+          await openList(list);
+          await loadListItems(listId);
+        }
+      }
+    }
+    
+    // Wait for lists to load, then check URL params
+    setTimeout(handleUrlParams, 500);
+    
+    // Handle browser back button
+    window.addEventListener('popstate', (event) => {
+      if (event.state && event.state.listId) {
+        // Going to a list (back or forward) - URL already updated by browser
+        const list = allLists.find(l => l.id == event.state.listId);
+        if (list) {
+          // Just load the list items, don't push state
+          currentList = list.id;
+          $('currentListTitle').textContent = list.name;
+          $('listsView').classList.add('hidden');
+          $('itemsView').classList.remove('hidden');
+          $('inputFooter').classList.remove('hidden');
+          
+          if (wsClient && wsClient.isConnected()) {
+            wsClient.subscribeToList(list.id);
+          }
+          loadListItems(list.id);
+        }
+      } else {
+        // Going back to dashboard - just update UI
+        currentList = null;
+        $('itemsView').classList.add('hidden');
+        $('inputFooter').classList.add('hidden');
+        $('listsView').classList.remove('hidden');
+        $('itemsList').innerHTML = '';
+        $('itemInput').value = '';
+      }
+    });
     
     // Start zone monitoring for push notifications
     requestNotificationPermission();

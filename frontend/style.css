@@ -559,20 +559,22 @@ button:active:not(:disabled) {
 }
 
 /* ============================================================================
-   LIST CARDS (Shopping Lists)
+   LIST CARDS (Shopping Lists) - Google Keep Style
    ============================================================================ */
 .list-card {
   background: var(--bg-surface);
-  border-radius: var(--radius-xl);
-  padding: var(--spacing-lg);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-md);
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
-  border: 2px solid transparent;
+  border: 1px solid var(--color-gray-200);
   position: relative;
   overflow: hidden;
+  min-height: 200px;
+  max-width: 280px;
 }
 
 .list-card::before {
@@ -581,75 +583,134 @@ button:active:not(:disabled) {
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
-  background: linear-gradient(90deg, var(--list-color-main, var(--color-primary)), var(--list-color-light, var(--color-primary-light)));
-  transition: height 0.3s ease;
+  height: 3px;
+  background: var(--list-color-main, var(--color-primary));
+  opacity: 0.8;
 }
 
 .list-card:hover {
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
-  transform: translateY(-6px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
   border-color: var(--list-color-main, var(--color-primary));
 }
 
-.list-card.active {
-  border-color: var(--color-success);
-  background: linear-gradient(135deg, var(--color-gray-50) 0%, var(--bg-surface) 100%);
+.list-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
 .list-card-header {
   display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-md);
+  align-items: center;
+  gap: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
+  flex-shrink: 0;
 }
 
 .list-card-icon {
-  width: 48px;
-  height: 48px;
+  width: 32px;
+  height: 32px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: var(--radius-lg);
-  background: linear-gradient(135deg, var(--list-color-light, #e0f2fe), var(--list-color-main, #06b6d4));
+  border-radius: var(--radius-md);
+  background: var(--list-color-main, var(--color-primary));
   flex-shrink: 0;
   color: var(--color-white);
   line-height: 1;
+  opacity: 0.9;
 }
 
 .list-card-icon svg {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
   stroke: currentColor;
   fill: none;
+  stroke-width: 2.5;
 }
 
 .list-card-title {
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: var(--spacing-xs);
   word-break: break-word;
+  line-height: 1.3;
 }
 
 .list-card-description {
-  font-size: 0.875rem;
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  margin-bottom: 0;
+}
+
+/* Item Preview Section */
+.list-card-preview {
+  flex: 1;
+  margin: var(--spacing-md) 0;
+  overflow: hidden;
+  min-height: 0;
+}
+
+.list-card-preview-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  font-size: 0.8rem;
   color: var(--text-secondary);
-  margin-bottom: var(--spacing-md);
+}
+
+.list-card-preview-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+  line-height: 1.4;
+}
+
+.list-card-preview-item.completed {
+  color: var(--color-gray-400);
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+.list-card-preview-item::before {
+  content: '•';
+  color: var(--color-gray-300);
+  flex-shrink: 0;
+}
+
+.list-card-preview-empty {
+  color: var(--color-gray-400);
+  font-style: italic;
+  font-size: 0.75rem;
 }
 
 .list-card-stats {
   display: flex;
-  gap: var(--spacing-lg);
-  font-size: 0.875rem;
-  color: var(--text-secondary);
+  gap: var(--spacing-md);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
   margin-top: auto;
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid var(--color-gray-100);
+  flex-shrink: 0;
 }
 
 .list-card-stat {
   display: flex;
   align-items: center;
   gap: var(--spacing-xs);
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.list-card-stat svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2;
+  opacity: 0.6;
 }
 
 /* ============================================================================
