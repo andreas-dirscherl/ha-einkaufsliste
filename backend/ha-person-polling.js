@@ -98,46 +98,46 @@ async function checkAndBroadcastUserLocation(db, user) {
       // Update cache
       personLocationCache.set(cacheKey, currentZone);
 
-      // Get recommended list for new zone
-      let recommendedListId = null;
-      let recommendedListName = null;
+      // Get all recommended lists for new zone
+      let recommendedLists = [];
       
       if (currentZone && currentZone !== 'unknown') {
-        console.log(`[PERSON-POLLING] Looking for list mapped to zone: ${currentZone}`);
+        console.log(`[PERSON-POLLING] Looking for all lists mapped to zone: ${currentZone}`);
         
-        const listMapping = db.prepare(`
-          SELECT l.id, l.name 
+        const listMappings = db.prepare(`
+          SELECT DISTINCT l.id, l.name 
           FROM lists l
           JOIN zone_mappings zm ON l.id = zm.list_id
           WHERE zm.zone_entity_id = ? AND l.id IN (
             SELECT list_id FROM list_permissions WHERE user_id = ?
           )
-          LIMIT 1
-        `).get(currentZone, user.id);
+          ORDER BY l.name
+        `).all(currentZone, user.id);
 
-        if (listMapping) {
-          recommendedListId = listMapping.id;
-          recommendedListName = listMapping.name;
-          console.log(`[PERSON-POLLING] Found mapped list: "${recommendedListName}" (ID: ${recommendedListId})`);
+        if (listMappings && listMappings.length > 0) {
+          recommendedLists = listMappings;
+          console.log(`[PERSON-POLLING] Found ${listMappings.length} mapped list(s) for zone ${currentZone}:`);
+          listMappings.forEach(l => {
+            console.log(`[PERSON-POLLING]   - "${l.name}" (ID: ${l.id})`);
+          });
         } else {
-          console.log(`[PERSON-POLLING] No list mapped to zone ${currentZone} for user ${user.username}`);
+          console.log(`[PERSON-POLLING] No lists mapped to zone ${currentZone} for user ${user.username}`);
         }
       } else {
         console.log(`[PERSON-POLLING] Zone is unknown/empty, not looking for recommendations`);
       }
 
-      // Broadcast location change to user
+      // Broadcast location change to user with all recommended lists
       const messagePayload = {
         type: 'location-changed',
         userId: user.id,
         previousZone: previousZone || 'unknown',
         currentZone: currentZone,
-        recommendedListId: recommendedListId,
-        recommendedListName: recommendedListName,
+        recommendedLists: recommendedLists,
         timestamp: new Date().toISOString()
       };
       
-      console.log(`[PERSON-POLLING] Broadcasting to user ${user.id}:`, JSON.stringify(messagePayload, null, 2));
+      console.log(`[PERSON-POLLING] Broadcasting to user ${user.id}: ${recommendedLists.length} list(s)`);
       broadcastToUser(user.id, messagePayload);
     }
   } catch (error) {

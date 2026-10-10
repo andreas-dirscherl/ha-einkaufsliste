@@ -353,6 +353,26 @@
       from { opacity: 0; }
       to { opacity: 1; }
     }
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateX(400px);
+      }
+      to {
+        opacity: 1;
+        transform: translateX(0);
+      }
+    }
+    @keyframes slideOut {
+      from {
+        opacity: 1;
+        transform: translateX(0);
+      }
+      to {
+        opacity: 0;
+        transform: translateX(400px);
+      }
+    }
   </style>
 </head>
 <body>
@@ -766,17 +786,18 @@
         return;
       }
 
-      // If a new list is recommended for the new zone
-      if (locationData.recommendedListId && locationData.currentZone !== 'unknown') {
-        console.log(`[LOCATION-UPDATE] Recommended list: ${locationData.recommendedListName}`);
+      // If new lists are recommended for the new zone
+      if (locationData.recommendedLists && locationData.recommendedLists.length > 0 && locationData.currentZone !== 'unknown') {
+        console.log(`[LOCATION-UPDATE] Recommended lists: ${locationData.recommendedLists.map(l => l.name).join(', ')}`);
 
         // If user is currently viewing a list, offer to switch
         if (currentList) {
-          // Show a notification to the user about the recommended list
-          showLocationNotification(locationData.recommendedListName, locationData.recommendedListId);
+          // Show notification(s) for each recommended list
+          showLocationNotifications(locationData.recommendedLists);
         } else {
-          // If no list is open, auto-select the recommended one
-          const listData = await apiCall('GET', `/api/lists/${locationData.recommendedListId}`);
+          // If no list is open, auto-select the first recommended one
+          const firstList = locationData.recommendedLists[0];
+          const listData = await apiCall('GET', `/api/lists/${firstList.id}`);
           if (listData) {
             console.log(`[LOCATION-UPDATE] Auto-opening: ${listData.name}`);
             openList(listData);
@@ -785,44 +806,90 @@
       }
     }
 
-    // Show a toast notification for location-based list recommendation
-    function showLocationNotification(listName, listId) {
-      // Create a temporary notification element
-      const notification = document.createElement('div');
-      notification.style.cssText = `
+    // Show notifications for multiple location-based list recommendations
+    function showLocationNotifications(recommendedLists) {
+      // Create a container for all notifications
+      const container = document.createElement('div');
+      container.style.cssText = `
         position: fixed;
-        bottom: 100px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: #4CAF50;
-        color: white;
-        padding: 12px 20px;
-        border-radius: 8px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        bottom: 20px;
+        right: 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
         z-index: 1000;
-        font-size: 14px;
-        cursor: pointer;
-        animation: slideUp 0.3s ease-in-out;
+        max-width: 350px;
       `;
-      notification.textContent = `📍 ${listName} verfügbar - Klicken zum Öffnen`;
 
-      // Handle click to switch to the list
-      notification.addEventListener('click', async () => {
-        const listData = await apiCall('GET', `/api/lists/${listId}`);
-        if (listData) {
-          openList(listData);
-          notification.remove();
-        }
+      // Create a notification for each recommended list
+      recommendedLists.forEach((list, index) => {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          color: white;
+          padding: 12px 16px;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+          font-size: 14px;
+          animation: slideIn 0.3s ease-out;
+          animation-delay: ${index * 100}ms;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 12px;
+        `;
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = `📍 ${list.name}`;
+        textSpan.style.flex = '1';
+
+        const buttonSpan = document.createElement('span');
+        buttonSpan.style.cssText = `
+          background: rgba(255,255,255,0.3);
+          padding: 4px 12px;
+          border-radius: 4px;
+          cursor: pointer;
+          font-weight: 500;
+          white-space: nowrap;
+          transition: background 0.2s;
+        `;
+        buttonSpan.textContent = 'Öffnen';
+        buttonSpan.addEventListener('mouseover', () => {
+          buttonSpan.style.background = 'rgba(255,255,255,0.5)';
+        });
+        buttonSpan.addEventListener('mouseout', () => {
+          buttonSpan.style.background = 'rgba(255,255,255,0.3)';
+        });
+
+        // Handle click to switch to the list
+        buttonSpan.addEventListener('click', async () => {
+          const listData = await apiCall('GET', `/api/lists/${list.id}`);
+          if (listData) {
+            openList(listData);
+            container.remove();
+          }
+        });
+
+        notification.appendChild(textSpan);
+        notification.appendChild(buttonSpan);
+
+        // Auto-remove after 8 seconds
+        setTimeout(() => {
+          notification.style.animation = 'slideOut 0.3s ease-in forwards';
+          setTimeout(() => notification.remove(), 300);
+        }, 8000);
+
+        container.appendChild(notification);
       });
 
-      // Auto-remove after 8 seconds
-      document.body.appendChild(notification);
+      document.body.appendChild(container);
+
+      // Clean up empty container
       setTimeout(() => {
-        if (notification.parentElement) {
-          notification.style.animation = 'slideDown 0.3s ease-in-out';
-          setTimeout(() => notification.remove(), 300);
+        if (container.children.length === 0) {
+          container.remove();
         }
-      }, 8000);
+      }, 8500);
     }
 
     // Load and display lists as cards
