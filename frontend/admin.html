@@ -1360,6 +1360,7 @@
     // Category Zones Modal
     window.currentCategoryId = null;
     window.allHAZones = [];
+    window.assignedZoneEntityIds = []; // Track already assigned zones
 
     window.openCategoryZonesModal = async function(categoryId, categoryName) {
       currentCategoryId = categoryId;
@@ -1367,6 +1368,9 @@
       
       // Load existing zones for this category
       const zones = await apiCall('GET', `/api/admin/categories/${categoryId}/zones`);
+      
+      // Collect already assigned zone entity IDs
+      assignedZoneEntityIds = zones ? zones.map(z => z.zone_entity_id) : [];
       
       if (zones && zones.length > 0) {
         const zonesList = zones.map(z => `
@@ -1387,7 +1391,9 @@
       const haZones = await apiCall('GET', '/api/setup/ha-zones');
       if (haZones) {
         allHAZones = haZones;
-        renderCategoryZonesList(haZones);
+        // Filter out already assigned zones
+        const availableZones = haZones.filter(z => !assignedZoneEntityIds.includes(z.entity_id));
+        renderCategoryZonesList(availableZones);
       }
       
       $('categoryZoneSearch').value = '';
@@ -1426,15 +1432,18 @@
     window.filterCategoryZones = function() {
       const searchTerm = $('categoryZoneSearch').value.toLowerCase();
       
-      if (!searchTerm) {
-        renderCategoryZonesList(allHAZones);
-        return;
-      }
+      let filtered = allHAZones;
       
-      const filtered = allHAZones.filter(z => 
-        z.name.toLowerCase().includes(searchTerm) || 
-        z.entity_id.toLowerCase().includes(searchTerm)
-      );
+      // Always filter out already assigned zones
+      filtered = filtered.filter(z => !assignedZoneEntityIds.includes(z.entity_id));
+      
+      // Apply search filter if present
+      if (searchTerm) {
+        filtered = filtered.filter(z => 
+          z.name.toLowerCase().includes(searchTerm) || 
+          z.entity_id.toLowerCase().includes(searchTerm)
+        );
+      }
       
       renderCategoryZonesList(filtered);
     }
