@@ -1135,6 +1135,70 @@ app.post('/api/admin/zones', verifyToken, requireAdmin, (req, res) => {
   }
 });
 
+// GET /api/admin/zones/debug - Debug zone polling status
+app.get('/api/admin/zones/debug', verifyToken, requireAdmin, async (req, res) => {
+  try {
+    const db = getDatabase();
+    
+    // Get all users with their HA person entity
+    const users = db.prepare(`
+      SELECT id, username, ha_person_entity_id 
+      FROM users 
+      ORDER BY username
+    `).all();
+
+    // Get all zone mappings
+    const zoneMappings = db.prepare(`
+      SELECT 
+        zm.id,
+        zm.list_id,
+        zm.zone_entity_id,
+        zm.zone_name,
+        l.name as list_name
+      FROM zone_mappings zm
+      JOIN lists l ON zm.list_id = l.id
+      ORDER BY l.name, zm.zone_name
+    `).all();
+
+    // Check each user's location and permissions
+    const userStatus = [];
+    for (const user of users) {
+      const hasPersonEntity = !!user.ha_person_entity_id;
+      
+      // Get lists with zone mappings for this user
+      const zoneListsForUser = db.prepare(`
+        SELECT DISTINCT l.id, l.name, zm.zone_entity_id, zm.zone_name
+        FROM zone_mappings zm
+        JOIN lists l ON zm.list_id = l.id
+        WHERE l.id IN (
+          SELECT list_id FROM list_permissions WHERE user_id = ?
+        )
+        ORDER BY l.name
+      `).all(user.id);
+
+      userStatus.push({
+        userId: user.id,
+        username: user.username,
+        hasPersonEntity: hasPersonEntity,
+        personEntityId: user.ha_person_entity_id || null,
+        zoneListsCount: zoneListsForUser.length,
+        zoneLists: zoneListsForUser
+      });
+    }
+
+    res.json({
+      timestamp: new Date().toISOString(),
+      userCount: users.length,
+      totalZoneMappings: zoneMappings.length,
+      users: userStatus,
+      allZoneMappings: zoneMappings,
+      note: "Check if users have HA person entities assigned and zone-mapped lists"
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // DELETE /api/admin/zones/:zoneId - Delete zone mapping
 app.delete('/api/admin/zones/:zoneId', verifyToken, requireAdmin, (req, res) => {
   try {

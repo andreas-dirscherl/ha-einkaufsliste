@@ -234,16 +234,25 @@ export function broadcastToList(listId, message, excludeWs = null) {
  * Broadcast to specific user
  */
 export function broadcastToUser(userId, message) {
-  if (!userConnections.has(userId)) return;
+  if (!userConnections.has(userId)) {
+    console.warn(`[WEBSOCKET] User ${userId} not connected, skipping broadcast for type: ${message.type}`);
+    return;
+  }
 
   const payload = JSON.stringify(message);
   const connections = userConnections.get(userId);
+  let sentCount = 0;
 
   connections.forEach(ws => {
     if (ws.readyState === 1) { // 1 = OPEN
       ws.send(payload);
+      sentCount++;
+    } else {
+      console.warn(`[WEBSOCKET] User ${userId} connection not open (readyState: ${ws.readyState})`);
     }
   });
+  
+  console.log(`[WEBSOCKET] Broadcast to user ${userId} (type: ${message.type}): sent to ${sentCount}/${connections.size} connections`);
 }
 
 /**

@@ -80,6 +80,11 @@ async function checkAndBroadcastUserLocation(db, user) {
   try {
     // Get current location from HA
     const location = await getPersonLocation(user.ha_person_entity_id);
+    if (!location) {
+      console.log(`[PERSON-POLLING] No location data for ${user.username}`);
+      return;
+    }
+    
     const currentZone = location.current_zone;
     
     // Get cached previous location
@@ -95,7 +100,11 @@ async function checkAndBroadcastUserLocation(db, user) {
 
       // Get recommended list for new zone
       let recommendedListId = null;
+      let recommendedListName = null;
+      
       if (currentZone && currentZone !== 'unknown') {
+        console.log(`[PERSON-POLLING] Looking for list mapped to zone: ${currentZone}`);
+        
         const listMapping = db.prepare(`
           SELECT l.id, l.name 
           FROM lists l
@@ -108,21 +117,28 @@ async function checkAndBroadcastUserLocation(db, user) {
 
         if (listMapping) {
           recommendedListId = listMapping.id;
+          recommendedListName = listMapping.name;
+          console.log(`[PERSON-POLLING] Found mapped list: "${recommendedListName}" (ID: ${recommendedListId})`);
+        } else {
+          console.log(`[PERSON-POLLING] No list mapped to zone ${currentZone} for user ${user.username}`);
         }
+      } else {
+        console.log(`[PERSON-POLLING] Zone is unknown/empty, not looking for recommendations`);
       }
 
       // Broadcast location change to user
-      broadcastToUser(user.id, {
+      const messagePayload = {
         type: 'location-changed',
         userId: user.id,
         previousZone: previousZone || 'unknown',
         currentZone: currentZone,
         recommendedListId: recommendedListId,
-        recommendedListName: recommendedListId ? 
-          db.prepare('SELECT name FROM lists WHERE id = ?').get(recommendedListId)?.name : 
-          null,
+        recommendedListName: recommendedListName,
         timestamp: new Date().toISOString()
-      });
+      };
+      
+      console.log(`[PERSON-POLLING] Broadcasting to user ${user.id}:`, JSON.stringify(messagePayload, null, 2));
+      broadcastToUser(user.id, messagePayload);
     }
   } catch (error) {
     // HA might be unreachable, log but don't crash
