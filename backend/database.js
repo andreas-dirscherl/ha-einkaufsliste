@@ -311,6 +311,35 @@ function applyMigrations() {
   } catch (e) {
     // Column already exists, skip
   }
+
+  // Migration 7: Create push_subscriptions table for Web Push notifications
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      endpoint TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      p256dh TEXT NOT NULL,
+      device_name TEXT DEFAULT 'Unknown Device',
+      is_active BOOLEAN DEFAULT 1,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      UNIQUE(endpoint)
+    )
+  `);
+
+  try {
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)').run();
+  } catch (e) {
+    // Index already exists, skip
+  }
+
+  try {
+    db.prepare('CREATE INDEX IF NOT EXISTS idx_push_subscriptions_active ON push_subscriptions(is_active)').run();
+  } catch (e) {
+    // Index already exists, skip
+  }
 }
 
 /**

@@ -39,6 +39,14 @@ import { startHAPolling, stopHAPolling } from './ha-polling.js';
 import { startPersonPolling, stopPersonPolling } from './ha-person-polling.js';
 import { SyncManager, NotificationManager } from './sync-manager.js';
 import { getCategory, getAllCategories } from './categories.js';
+import {
+  savePushSubscription,
+  removePushSubscription,
+  getUserSubscriptions,
+  sendPushToUser,
+  getVapidPublicKey,
+  isPushConfigured
+} from './push-notifications.js';
 
 dotenv.config();
 
@@ -274,6 +282,75 @@ app.get('/api/setup/ha-zones', verifyToken, requireAdmin, async (req, res) => {
   } catch (error) {
     console.error('Failed to fetch HA zones:', error);
     res.status(500).json({ error: 'Failed to fetch zones' });
+  }
+});
+
+/**
+ * PUSH NOTIFICATIONS ROUTES
+ */
+
+// GET /api/push/config - Get VAPID public key
+app.get('/api/push/config', (req, res) => {
+  const publicKey = getVapidPublicKey();
+  const configured = isPushConfigured();
+  
+  if (!configured || !publicKey) {
+    return res.status(503).json({ 
+      error: 'Push notifications not configured',
+      configured: false
+    });
+  }
+  
+  res.json({
+    configured: true,
+    publicKey: publicKey
+  });
+});
+
+// POST /api/push/subscribe - Save a push subscription
+app.post('/api/push/subscribe', verifyToken, async (req, res) => {
+  try {
+    const { subscription, deviceName } = req.body;
+    const userId = req.user.id;
+    
+    if (!subscription || !subscription.endpoint) {
+      return res.status(400).json({ error: 'Invalid subscription object' });
+    }
+    
+    await savePushSubscription(userId, subscription, deviceName || 'Web Browser');
+    res.json({ success: true, message: 'Subscription saved' });
+  } catch (error) {
+    console.error('Error saving subscription:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// DELETE /api/push/subscribe - Remove a push subscription
+app.delete('/api/push/subscribe', verifyToken, async (req, res) => {
+  try {
+    const { endpoint } = req.body;
+    
+    if (!endpoint) {
+      return res.status(400).json({ error: 'Endpoint required' });
+    }
+    
+    const result = await removePushSubscription(endpoint);
+    res.json(result);
+  } catch (error) {
+    console.error('Error removing subscription:', error.message);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// GET /api/push/subscriptions - Get all subscriptions for current user
+app.get('/api/push/subscriptions', verifyToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const subscriptions = getUserSubscriptions(userId);
+    res.json(subscriptions);
+  } catch (error) {
+    console.error('Error fetching subscriptions:', error.message);
+    res.status(500).json({ error: error.message });
   }
 });
 

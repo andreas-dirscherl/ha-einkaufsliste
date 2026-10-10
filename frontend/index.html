@@ -495,6 +495,14 @@
             }
           }
         });
+
+        // Request push notification permission and subscribe
+        if ('Notification' in window) {
+          console.log('[PUSH] Notification API available');
+          requestPushPermission(registration);
+        } else {
+          console.log('[PUSH] Notification API not available in this browser');
+        }
       }).catch(err => {
         console.log('Service Worker registration failed:', err);
       });
@@ -890,6 +898,116 @@
           container.remove();
         }
       }, 8500);
+    }
+
+    // Load and display lists as cards
+    async function requestPushPermission(registration) {
+      try {
+        // Check if browser supports push notifications
+        if (!('pushManager' in registration)) {
+          console.log('[PUSH] Browser does not support Push API');
+          return;
+        }
+
+        // Check current permission status
+        const permission = Notification.permission;
+        
+        if (permission === 'denied') {
+          console.log('[PUSH] User has denied push notifications');
+          return;
+        }
+
+        if (permission === 'granted') {
+          console.log('[PUSH] Already have push permission, subscribing...');
+          await subscribeToPush(registration);
+          return;
+        }
+
+        // Request permission (permission === 'default')
+        console.log('[PUSH] Requesting push notification permission...');
+        const result = await Notification.requestPermission();
+        
+        if (result === 'granted') {
+          console.log('[PUSH] User granted push notification permission');
+          await subscribeToPush(registration);
+        } else {
+          console.log('[PUSH] User denied or dismissed push notification permission');
+        }
+      } catch (error) {
+        console.error('[PUSH] Error requesting permission:', error);
+      }
+    }
+
+    async function subscribeToPush(registration) {
+      try {
+        // Get VAPID public key from server
+        const configResponse = await fetch('/api/push/config');
+        
+        if (!configResponse.ok) {
+          console.log('[PUSH] Push not configured on server');
+          return;
+        }
+
+        const config = await configResponse.json();
+        
+        if (!config.publicKey) {
+          console.log('[PUSH] No public key available');
+          return;
+        }
+
+        // Subscribe to push notifications
+        const subscription = await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(config.publicKey)
+        });
+
+        console.log('[PUSH] Subscribed successfully:', subscription.endpoint);
+
+        // Send subscription to server
+        const response = await apiCall('POST', '/api/push/subscribe', {
+          subscription: {
+            endpoint: subscription.endpoint,
+            keys: {
+              auth: arrayBufferToBase64(subscription.getKey('auth')),
+              p256dh: arrayBufferToBase64(subscription.getKey('p256dh'))
+            }
+          },
+          deviceName: `${navigator.userAgent.split('/').pop().split(' ')[0]} - ${new Date().toLocaleDateString()}`
+        });
+
+        if (response.success) {
+          console.log('[PUSH] Subscription registered with server');
+        }
+      } catch (error) {
+        if (error.name === 'NotAllowedError') {
+          console.log('[PUSH] Permission denied by user');
+        } else if (error.name === 'InvalidStateError') {
+          console.log('[PUSH] Service worker not ready');
+        } else {
+          console.error('[PUSH] Error subscribing to push:', error);
+        }
+      }
+    }
+
+    // Helper functions for push subscription
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+      const base64 = (base64String + padding).replace(/\-/g, '+').replace(/_/g, '/');
+      const rawData = window.atob(base64);
+      const outputArray = new Uint8Array(rawData.length);
+      for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+      }
+      return outputArray;
+    }
+
+    function arrayBufferToBase64(buffer) {
+      const bytes = new Uint8Array(buffer);
+      let binary = '';
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return window.btoa(binary);
     }
 
     // Load and display lists as cards

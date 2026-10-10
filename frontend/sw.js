@@ -260,3 +260,89 @@ self.addEventListener('activate', (event) => {
     })
   );
 });
+
+/**
+ * Push notification event - Triggered when push message is received
+ */
+self.addEventListener('push', (event) => {
+  console.log('[SW] Push event received');
+
+  let notificationData = {
+    title: '📍 Liste verfügbar',
+    body: 'Eine neue Liste ist jetzt verfügbar!',
+    icon: '/assets/icon-192x192.png',
+    badge: '/assets/icon-96x96.png',
+    tag: 'location-notification'
+  };
+
+  if (event.data) {
+    try {
+      notificationData = event.data.json();
+      console.log('[SW] Push data:', notificationData);
+    } catch (error) {
+      // If data is not JSON, use as body text
+      notificationData.body = event.data.text();
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(notificationData.title, {
+      body: notificationData.body,
+      icon: notificationData.icon,
+      badge: notificationData.badge,
+      tag: notificationData.tag || 'notification',
+      requireInteraction: true,
+      actions: [
+        {
+          action: 'open',
+          title: 'Öffnen'
+        },
+        {
+          action: 'close',
+          title: 'Schließen'
+        }
+      ],
+      data: notificationData.data || {}
+    })
+  );
+});
+
+/**
+ * Notification click event - Triggered when user clicks on notification
+ */
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.action);
+
+  event.notification.close();
+
+  const notificationData = event.notification.data || {};
+  let url = '/';
+
+  // If list ID is available, open the specific list
+  if (notificationData.listId) {
+    url = `/?list=${notificationData.listId}`;
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      // Check if app is already open
+      for (const client of clientList) {
+        if (client.url === url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+
+      // If app is not open, open it
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    })
+  );
+});
+
+/**
+ * Notification close event - Triggered when user dismisses notification
+ */
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notification dismissed');
+});

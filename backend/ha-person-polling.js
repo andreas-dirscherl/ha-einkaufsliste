@@ -6,6 +6,7 @@
 import { getDatabase } from './database.js';
 import { getPersonLocation, getHAPersons } from './ha-integration.js';
 import { broadcastToUser } from './websocket-server.js';
+import { sendPushToUser } from './push-notifications.js';
 
 const PERSON_POLLING_INTERVAL_MS = 5000; // Check every 5 seconds
 
@@ -139,6 +140,33 @@ async function checkAndBroadcastUserLocation(db, user) {
       
       console.log(`[PERSON-POLLING] Broadcasting to user ${user.id}: ${recommendedLists.length} list(s)`);
       broadcastToUser(user.id, messagePayload);
+
+      // Send OS-level push notifications for each recommended list
+      if (recommendedLists.length > 0) {
+        console.log(`[PERSON-POLLING] Sending push notifications for ${recommendedLists.length} list(s) to user ${user.id}`);
+        
+        for (const list of recommendedLists) {
+          try {
+            const pushNotification = {
+              title: `📍 ${currentZone.replace('zone.', '')}`,
+              body: `"${list.name}" ist jetzt verfügbar!`,
+              icon: '/assets/icon-192x192.png',
+              badge: '/assets/icon-96x96.png',
+              tag: `list-${list.id}`,
+              data: {
+                listId: list.id,
+                listName: list.name,
+                currentZone: currentZone,
+                timestamp: new Date().toISOString()
+              }
+            };
+
+            await sendPushToUser(user.id, pushNotification);
+          } catch (error) {
+            console.error(`[PERSON-POLLING] Error sending push for list ${list.name}:`, error.message);
+          }
+        }
+      }
     }
   } catch (error) {
     // HA might be unreachable, log but don't crash
