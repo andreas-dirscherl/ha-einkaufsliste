@@ -2,9 +2,13 @@ const CACHE_NAME = 'einkaufsliste-v1';
 const OFFLINE_DB = 'einkaufsliste-offline';
 const API_CACHE = 'einkaufsliste-api-v1';
 
-// Cache version for automatic updates
-// This gets updated on each deployment
-const CACHE_VERSION = Date.now();
+// Force cache invalidation on every deployment
+const CACHE_VERSION = new Date().toISOString().split('T')[0]; // Daily update
+const CACHE_WITH_VERSION = `${CACHE_NAME}-${CACHE_VERSION}`;
+const API_CACHE_WITH_VERSION = `${API_CACHE}-${CACHE_VERSION}`;
+
+// All cache names to track for cleanup
+const ALL_CACHE_NAMES = [CACHE_WITH_VERSION, API_CACHE_WITH_VERSION];
 
 const URLS_TO_CACHE = [
   '/',
@@ -20,7 +24,7 @@ const URLS_TO_CACHE = [
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing Service Worker, cache version:', CACHE_VERSION);
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
+    caches.open(CACHE_WITH_VERSION).then((cache) => {
       console.log('Service Worker: Caching app shell');
       return cache.addAll(URLS_TO_CACHE);
     })
@@ -51,7 +55,7 @@ self.addEventListener('fetch', (event) => {
         // Cache successful responses
         if (response && response.status === 200 && request.method === 'GET') {
           const responseClone = response.clone();
-          caches.open(CACHE_NAME).then((cache) => {
+          caches.open(CACHE_WITH_VERSION).then((cache) => {
             cache.put(request, responseClone);
           });
         }
@@ -77,7 +81,7 @@ async function handleApiRequest(request) {
     // Cache successful API responses
     if (response.ok) {
       const responseClone = response.clone();
-      const cache = await caches.open(API_CACHE);
+      const cache = await caches.open(API_CACHE_WITH_VERSION);
       cache.put(request, responseClone);
     }
     
@@ -242,12 +246,12 @@ self.addEventListener('message', (event) => {
 self.addEventListener('activate', (event) => {
   console.log('[SW] Activating Service Worker, version:', CACHE_VERSION);
   event.waitUntil(
-    // Clean up old caches
+    // Clean up old caches - keep only current version
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          // Keep only current cache version
-          if (cacheName !== CACHE_NAME && cacheName !== API_CACHE) {
+          // Only keep current cache names
+          if (!ALL_CACHE_NAMES.includes(cacheName)) {
             console.log('[SW] Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }

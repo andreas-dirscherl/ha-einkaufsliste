@@ -453,14 +453,17 @@
 
     // Register Service Worker for PWA
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').then(registration => {
+      // Cache-busting: Force update check with timestamp
+      navigator.serviceWorker.register(`/sw.js?v=${Date.now()}`).then(registration => {
         console.log('Service Worker registered');
         
-        // Check for updates every 5 minutes
+        // Check for updates immediately and every minute
+        registration.update().catch(err => console.log('[PWA] Initial update check failed:', err));
+        
         setInterval(() => {
           console.log('[PWA] Checking for updates...');
           registration.update().catch(err => console.log('[PWA] Update check failed:', err));
-        }, 5 * 60 * 1000); // 5 minutes
+        }, 1 * 60 * 1000); // Check every minute instead of 5
         
         // Listen for new service worker
         registration.addEventListener('updatefound', () => {
