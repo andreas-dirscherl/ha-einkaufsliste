@@ -431,17 +431,26 @@
     <!-- Input Footer -->
     <div id="inputFooter" class="input-footer hidden">
       <div class="input-footer-content">
+        <!-- Decoy input to catch OS autofill -->
+        <input type="text" style="display:none; position:absolute; opacity:0; pointer-events:none;" tabindex="-1" autocomplete="username">
+        
+        <!-- Real item input with aggressive autofill suppression -->
         <input 
           type="text" 
           id="itemInput" 
           placeholder="Neuen Artikel hinzufügen..."
+          inputmode="text"
           autocomplete="off"
           autocorrect="off"
           autocapitalize="off"
           spellcheck="false"
+          readonly
           data-lpignore="true"
           data-1p-ignore="true"
           data-form-type="other"
+          data-password-manager-disabled="true"
+          onfocus="this.removeAttribute('readonly');"
+          onblur="if(!this.value) this.setAttribute('readonly', 'readonly');"
         >
         <button id="addBtn" class="btn btn-primary">Hinzu</button>
       </div>
@@ -510,6 +519,45 @@
         console.log('Service Worker registration failed:', err);
       });
     }
+    
+    // Suppress OS password autofill on item input
+    function suppressPasswordAutofill() {
+      const itemInput = document.getElementById('itemInput');
+      if (itemInput) {
+        // Set all autofill-suppressing attributes
+        itemInput.setAttribute('autocomplete', 'off');
+        itemInput.setAttribute('inputmode', 'text');
+        itemInput.setAttribute('data-password-manager-disabled', 'true');
+        
+        // Prevent form submission (no form context)
+        itemInput.removeAttribute('name');
+        
+        // Suppress WebKit autofill
+        const style = document.createElement('style');
+        style.textContent = `
+          #itemInput:-webkit-autofill,
+          #itemInput:-webkit-autofill:hover,
+          #itemInput:-webkit-autofill:focus,
+          #itemInput:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px white inset !important;
+            box-shadow: 0 0 0 30px white inset !important;
+          }
+          #itemInput:-webkit-autofill {
+            -webkit-text-fill-color: #000 !important;
+          }
+        `;
+        if (!document.head.querySelector('[data-autofill-suppression]')) {
+          style.setAttribute('data-autofill-suppression', 'true');
+          document.head.appendChild(style);
+        }
+        
+        console.log('[INPUT] OS password autofill suppression applied');
+      }
+    }
+    
+    // Run immediately and on DOM changes
+    suppressPasswordAutofill();
+    window.addEventListener('DOMContentLoaded', suppressPasswordAutofill);
     
     // Log online/offline status
     window.addEventListener('online', () => {
